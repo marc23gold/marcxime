@@ -1,27 +1,33 @@
-# Deploys the built site to the VPS over SSH.  ← Path A (GitHub Actions)
+# Deploys the built site to the VPS over SSH  ← Path A (GitHub Actions)
 #
 # How it works:
-#   1. On every push to `main` (and manually via the "Run workflow" button),
-#      GitHub checks out the repo on an ubuntu runner and runs
+#   1. On every push to `main` (and manually via "Run workflow"), GitHub
+#      checks out the repo on an ubuntu runner and runs
 #      `npm ci && npm run build`, producing `dist/`.
-#   2. The runner logs into the VPS over SSH and rsyncs `dist/` into the web
+#   2. The runner joins your Tailscale tailnet via the official
+#      `tailscale/github-action` — so it can reach the VPS the same way your
+#      laptop does (over the tunnel, at its Tailscale address). No public
+#      SSH port is exposed.
+#   3. The runner logs into the VPS over SSH and rsyncs `dist/` into the web
 #      root that nginx serves for marcxime.com.
-#   3. nginx picks up the new files (no reload needed for static files).
 #
 # ⚠️ One-time VPS prep (the SSH user must be able to write the web root):
 #     sudo mkdir -p /var/www/marcxime
 #     sudo chown -R marc:marc /var/www/marcxime
 #
 # Secrets required (repo  →  Settings  →  Secrets and variables  →  Actions):
+#   TAILSCALE_OAUTH_CLIENT_ID      — OAuth client ID   (from Tailscale admin)
+#   TAILSCALE_OAUTH_CLIENT_SECRET  — OAuth client secret
 #   VPS_USER     = marc
-#   VPS_HOST     = 46.62.196.199        (public IPv4, reachable on port 22)
+#   VPS_HOST     = 100.118.128.68  (VPS Tailscale address, reachable once the
+#                                   runner is on your tailnet)
 #   VPS_PORT     = 22
-#   VPS_SSH_KEY  = SSH PRIVATE key; its public half MUST be in the deploy
-#                  user's ~/.ssh/authorized_keys on the VPS
 #   VPS_WEBROOT  = /var/www/marcxime
+#   VPS_SSH_KEY  = SSH PRIVATE key; public half in the deploy user's
+#                  ~/.ssh/authorized_keys on the VPS
 #
-# For the "clone + build on the VPS instead" alternative, see DEPLOY-GUIDE.md
-# (Path B) — useful when you want to avoid a CI service entirely.
+# Creating the Tailscale OAuth client: see DEPLOY-GUIDE.md "Path A".
+# The "clone + build on the VPS" alternative is there too (Path B).
 
 name: Deploy
 
@@ -49,12 +55,17 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Connect runner to Tailscale tailnet
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci
+
       - name: Deploy static files to VPS
         run: |
           eval "$(ssh-agent -s)"
           echo "${{ secrets.VPS_SSH_KEY }}" | ssh-add -
-          mkdir -p ~/.ssh
-          ssh-keyscan -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
           SSH_TARGET="${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
           SSH_CMD="ssh -p ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=accept-new"

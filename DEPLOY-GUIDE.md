@@ -75,27 +75,34 @@ What each piece does:
 
 1. **Create the repo on GitHub** and push this code to `main` (see
    "First push" below). GitHub recognizes `.github/workflows/*.yml`.
-2. Add the **secrets** so the runner has what it needs:
+2. Create a **Tailscale OAuth client** so the GitHub runner can join your
+   tailnet (Tailscale admin console → *Settings → OAuth clients → Generate*),
+   then add it as secrets so the runner can authenticate to Tailscale: 
+   - `TAILSCALE_OAUTH_CLIENT_ID` → the client ID
+   - `TAILSCALE_OAUTH_CLIENT_SECRET` → the client secret
+3. Add the remaining **secrets**:
    `Settings → Secrets and variables → Actions → New repository secret`:
    - `VPS_USER` → `marc`
-   - `VPS_HOST` → `46.62.196.199` (the VPS's **public** IP; GitHub runners
-     cannot see your Tailscale-only address `100.118.128.68`)
+   - `VPS_HOST` → `100.118.128.68` (the VPS's **Tailscale** address; the
+     runner reaches it after joining your tailnet in step 2)
    - `VPS_PORT` → `22`
    - `VPS_SSH_KEY` → the **private** SSH key (e.g. paste the contents of
      `~/.ssh/uakar_ed25519` from your laptop / the key that will authenticate)
    - `VPS_WEBROOT` → `/var/www/marcxime`
-3. Make sure the **public** half of that key is in the deploy user's
+4. Make sure the **public** half of that key is in the deploy user's
    `~/.ssh/authorized_keys` on the VPS (it's already there if you SSH in with
    that key today).
-4. Push to `main` (or click **Run workflow**). Watch it under the **Actions**
+5. Push to `main` (or click **Run workflow**). Watch it under the **Actions**
    tab. Green = deployed.
 
-### Key idea: public vs. private (Tailscale) address
+### Key idea: the runner joins your tailnet
 
-You get to the VPS from your laptop over Tailscale (`100.118.128.68`), but
-GitHub's runners are on the public internet, so they use the public IPv4
-`46.62.196.199` on port 22. Any CI service doing SSH needs a **publicly
-reachable** address and a key already trusted by the server.
+Your VPS only accepts SSH over Tailscale (`100.118.128.68`), not on the public
+internet — that's a deliberate security choice. So instead of opening a public
+port, the workflow uses `tailscale/github-action` to join the GitHub runner to
+the **same tailnet** your laptop uses. Once it's in, it reaches the VPS at the
+Tailscale address, exactly like you do. The SSH key still has to be one the
+VPS trusts.
 
 ---
 
