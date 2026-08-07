@@ -2,13 +2,14 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
 
 /* A horse statue (glTF from the downloads folder) lit by the same orbiting,
    colorful, texture-projected spotlight as the Lucy scene — mirroring three.js
    webgl_lights_spotlight. The model keeps its own PBR materials, seated on a
    marble plinth so it reads as a statue. */
 
-const MODEL_URL = '/models/horse_statue_01_4k/horse_statue_01_4k.gltf'
+const MODEL_URL = '/models/horse_statue_01_4k/horse_statue_01_4k.glb'
 
 const RADIUS = 2.5
 const HEIGHT = 5
@@ -112,8 +113,8 @@ function Spotlight() {
       penumbra={1}
       decay={2}
       color="#ffffff"
-      shadow-mapSize-width={1024}
-      shadow-mapSize-height={1024}
+      shadow-mapSize-width={SHADOW_MAP}
+      shadow-mapSize-height={SHADOW_MAP}
       shadow-camera-near={2}
       shadow-camera-far={10}
       shadow-focus={1}
@@ -129,7 +130,7 @@ function Beam() {
     if (dust.current) dust.current.rotation.y = state.clock.elapsedTime * 0.05
   })
   const dustPoints = useMemo(() => {
-    const count = 350
+    const count = DUST_COUNT
     const positions = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
       const radius = 0.3 + Math.random() * 1.5
@@ -173,7 +174,7 @@ export default function HorseStatue() {
       shadows
       gl={{ toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1 }}
       camera={{ position: [7, 4, 1], fov: 40 }}
-      dpr={[1, 2]}
+      dpr={DPR}
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={['#0b0b0d']} />

@@ -1,26 +1,31 @@
-import { Suspense, useMemo, useRef } from 'react'
-import { Canvas, useFrame, useLoader } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
 
-/* The genuine Stanford "Lucy" marble statue scan (the same model the three.js
-   webgl_lights_spotlight demo uses), loaded as a binary PLY and scaled to fit
-   the scene exactly as in the reference (scale 0.0024, y 0.8). */
+/* The genuine Stanford "Lucy" statue, decimated to ~10k tris and exported as a
+   small GLB (181 KB vs the 1.9 MB PLY) for fast loads and light mobile GPUs. */
 
 function Statue() {
-  const geometry = useLoader(PLYLoader, '/models/Lucy100k.ply')
+  const { scene } = useGLTF('/models/Lucy.glb')
+
+  useEffect(() => {
+    scene.traverse((o) => {
+      if (o.isMesh) {
+        o.castShadow = true
+        o.receiveShadow = true
+      }
+    })
+  }, [scene])
+
   return (
-    <mesh
-      geometry={geometry}
+    <primitive
+      object={scene}
       position={[0, 0.8, 0]}
       rotation={[0, -Math.PI / 2, 0]}
       scale={0.0024}
-      castShadow
-      receiveShadow
-    >
-      <meshLambertMaterial color="#eae6dc" />
-    </mesh>
+    />
   )
 }
 
@@ -108,8 +113,8 @@ function Spotlight() {
       penumbra={1}
       decay={2}
       color="#ffffff"
-      shadow-mapSize-width={1024}
-      shadow-mapSize-height={1024}
+      shadow-mapSize-width={SHADOW_MAP}
+      shadow-mapSize-height={SHADOW_MAP}
       shadow-camera-near={2}
       shadow-camera-far={10}
       shadow-focus={1}
@@ -125,7 +130,7 @@ function Beam() {
     if (dust.current) dust.current.rotation.y = state.clock.elapsedTime * 0.05
   })
   const dustPoints = useMemo(() => {
-    const count = 350
+    const count = DUST_COUNT
     const positions = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
       const radius = 0.3 + Math.random() * 1.4
@@ -170,7 +175,7 @@ export default function MarbleSpotlight() {
       shadows
       gl={{ toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1 }}
       camera={{ position: [7, 4, 1], fov: 40 }}
-      dpr={[1, 2]}
+      dpr={DPR}
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={['#0b0b0d']} />
