@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
+import Grain from './Grain'
 
 /* A horse statue (glTF from the downloads folder) lit by the same orbiting,
    colorful, texture-projected spotlight as the Lucy scene — mirroring three.js
@@ -187,6 +188,7 @@ export default function HorseStatue() {
       <Spotlight />
       <Beam />
       <Floor />
+      <Grain />
 
       <OrbitControls
         target={[0, 1, 0]}

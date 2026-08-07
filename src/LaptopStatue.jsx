@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
+import Grain from './Grain'
 
 /* A classic laptop (glTF, own PBR materials) seated on a plinth and lit by the
    same orbiting, colorful, texture-projected spotlight as the other pieces.
@@ -182,6 +183,7 @@ export default function LaptopStatue() {
       <Spotlight />
       <Beam />
       <Floor />
+      <Grain />
 
       <OrbitControls
         target={[0, 0.8, 0]}

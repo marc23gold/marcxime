@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
+import Grain from './Grain'
 
 /* The genuine Stanford "Lucy" statue, decimated to ~10k tris and exported as a
    small GLB (181 KB vs the 1.9 MB PLY) for fast loads and light mobile GPUs. */
@@ -188,6 +189,7 @@ export default function MarbleSpotlight() {
       <Spotlight />
       <Beam />
       <Floor />
+      <Grain />
 
       <OrbitControls
         target={[0, 1, 0]}

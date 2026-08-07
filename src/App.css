@@ -12,7 +12,7 @@ body,
 body {
   background: #0b0b0d;
   color: #e9e4db;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   overflow: hidden;
 }
 
@@ -36,10 +36,11 @@ body {
 
 .title h1 {
   font-size: clamp(1.8rem, 4vw, 2.8rem);
-  letter-spacing: 0.28em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   margin: 0;
-  font-weight: 400;
+  font-family: 'Cormorant SC', Georgia, 'Times New Roman', serif;
+  font-weight: 600;
 }
 
 .title p {
