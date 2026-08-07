@@ -1,4 +1,4 @@
-import SpotlightShowcase from './SpotlightShowcase'
+import MarbleSpotlight from './MarbleSpotlight'
 import './App.css'
 
 const GITHUB_URL = 'https://github.com/marc23gold'
@@ -6,7 +6,7 @@ const GITHUB_URL = 'https://github.com/marc23gold'
 export default function App() {
   return (
     <div className="app">
-      <SpotlightShowcase />
+      <MarbleSpotlight />
       <header className="title">
         <h1>marcxime</h1>
         <p>a work in progress</p>
