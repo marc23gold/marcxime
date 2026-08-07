@@ -1,4 +1,4 @@
-import StatueScene from './StatueScene'
+import SpotlightShowcase from './SpotlightShowcase'
 import './App.css'
 
 const GITHUB_URL = 'https://github.com/marc23gold'
@@ -6,7 +6,7 @@ const GITHUB_URL = 'https://github.com/marc23gold'
 export default function App() {
   return (
     <div className="app">
-      <StatueScene />
+      <SpotlightShowcase />
       <header className="title">
         <h1>marcxime</h1>
         <p>a work in progress</p>
