@@ -17,7 +17,7 @@ function Marble({ children, ...props }) {
   )
 }
 
-function Bust() {
+export function Bust() {
   return (
     <group>
       {/* plinth */}
