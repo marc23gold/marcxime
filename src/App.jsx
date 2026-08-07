@@ -2,19 +2,18 @@ import { lazy, Suspense, useState } from 'react'
 import { isMobile } from './mobile'
 import './App.css'
 
-/* Each statue scene is a self-contained full-screen Canvas. Code-split every
-   scene and pick one at random per page load, so a visit only downloads the
-   JS + model for the chosen statue. On mobile we weight the lighter scenes
-   (hands) higher. */
+/* Each scene is a self-contained full-screen Canvas. Code-split every scene
+   and pick one at random per page load, so a visit only downloads the JS +
+   model for the chosen piece. On mobile we weight the lighter scenes higher. */
 
 const MarbleSpotlight = lazy(() => import('./MarbleSpotlight'))
 const HorseStatue = lazy(() => import('./HorseStatue'))
-const HandsStatue = lazy(() => import('./HandsStatue'))
+const LaptopStatue = lazy(() => import('./LaptopStatue'))
 
 const SCENES = [
   { Comp: MarbleSpotlight, weight: isMobile ? 1 : 1 }, // Lucy
   { Comp: HorseStatue, weight: isMobile ? 0.5 : 1 },
-  { Comp: HandsStatue, weight: isMobile ? 2 : 1 }, // lightest
+  { Comp: LaptopStatue, weight: isMobile ? 2 : 1 }, // lightest
 ]
 
 const GITHUB_URL = 'https://github.com/marc23gold'

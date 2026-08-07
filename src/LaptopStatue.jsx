@@ -4,18 +4,15 @@ import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
 
-/* A rigged-hands model (Blender .blend converted to GLB via the CLI) lit by the
-   same orbiting, colorful, texture-projected spotlight as the other statues.
-   The hands are a wide composition (~3.2 x 0.66), so they sit on a broad plinth
-   with a wider orbiting radius. */
+/* A classic laptop (glTF, own PBR materials) seated on a plinth and lit by the
+   same orbiting, colorful, texture-projected spotlight as the other pieces.
+   Replaces the hands on the random-statue branch. */
 
-const MODEL_URL = '/models/hands_rigged/hands_rigged.glb'
+const MODEL_URL = '/models/classic_laptop_2k/classic_laptop_2k.gltf'
 
-const RADIUS = 3.6
+const RADIUS = 3.5
 const HEIGHT = 5
 
-/* The hands on a wide plinth, centred. Scale ~1.5 makes the ~0.66-high model
-   ~1 unit tall and its ~3.2 width nearly fill the frame. */
 function Statue() {
   const { scene } = useGLTF(MODEL_URL)
 
@@ -30,13 +27,13 @@ function Statue() {
 
   return (
     <group>
-      {/* wide plinth cradling the hands (floor top is y=0) */}
-      <mesh position={[0, -0.4, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[2.4, 2.7, 0.8, 64]} />
+      {/* wide plinth (floor top is y=0) */}
+      <mesh position={[0, -0.5, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.3, 1.5, 1.0, 64]} />
         <meshStandardMaterial color="#d9d2c6" roughness={0.4} metalness={0.06} />
       </mesh>
-      {/* hands (model base sits on the plinth top) */}
-      <primitive object={scene} scale={1.5} position={[0, 0.35, 0]} rotation={[0, Math.PI, 0]} />
+      {/* laptop rested on the plinth (model base ~y 0) */}
+      <primitive object={scene} scale={3} position={[0, 0.04, 0]} rotation={[0, -0.5, 0]} />
     </group>
   )
 }
@@ -121,7 +118,7 @@ function Spotlight() {
   )
 }
 
-/* A handful of drifting dust motes so the sweeping shaft reads in the air. */
+/* Drifting dust so the sweeping shaft reads in the air. */
 function Beam() {
   const dust = useRef()
   useFrame((state) => {
@@ -131,7 +128,7 @@ function Beam() {
     const count = DUST_COUNT
     const positions = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
-      const radius = 0.4 + Math.random() * 1.8
+      const radius = 0.4 + Math.random() * 1.6
       const angle = Math.random() * Math.PI * 2
       positions[i * 3] = Math.cos(angle) * radius
       positions[i * 3 + 1] = 0.3 + Math.random() * 2.2
@@ -166,12 +163,12 @@ function Floor() {
   )
 }
 
-export default function HandsStatue() {
+export default function LaptopStatue() {
   return (
     <Canvas
       shadows
       gl={{ toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1 }}
-      camera={{ position: [7, 3, 2], fov: 40 }}
+      camera={{ position: [6.5, 3, 2.5], fov: 40 }}
       dpr={DPR}
       style={{ position: 'absolute', inset: 0 }}
     >
