@@ -60,6 +60,34 @@ One piece per discipline makes the rotating pool say "who I am":
 
 ---
 
+### Cinematic finishing layer (film grain, riso, glitch, type)
+
+Applied on `random-statue` over every scene in the pool:
+
+- **Warm film grain** — `src/Grain.jsx`: an `EffectComposer` with `<Noise
+  premultiply opacity={0.2}>` (the grain animates — shader is `rand(uv*(1.0+time))`)
+  plus a soft `<Vignette darkness={0.7}>`. **Lesson:** scanlines + strong noise read
+  as a retro TV, not film — remove `Scanline`, keep grain fine and low-opacity.
+- **Risograph grain overlay** — a fixed `.riso` div (soft-light blend, `z-index 3`,
+  pointer-events none) combining an animated SVG `feTurbulence` fractal-noise layer
+  with a **warm riso-ink gradient** (gold/rose/oil-teal). `@keyframes risoDrift`
+  jitters it in steps — dancing, off-registration print texture.
+- **Periodic glitch** — the title glitches every **12s**: two pseudo-element copies
+  of "marcxime" (red `#ff6b5e` / cyan `#63f5e0`) burst for ~0.7s near the 92% mark
+  of `glitchA`/`glitchB` keyframes (RGB-split slices). Tune the `%` windows or the
+  `12s` duration to taste.
+- **Typography** — **Lora** (soft serif) self-hosted via `@fontsource` (400 /
+  400-italic / 500). Title: Lora 500, letterspaced caps, plain warm cream
+  `#eee6d2` (gradient/glow versions were too ornate — removed). Body/footer: Lora
+  400. **Lesson:** Cormorant SC + gold gradient read "tacky" — softer, lower-contrast
+  type suited the warm film mood better.
+- **Text selectability** — the title deliberately has `user-select: none` +
+  `pointer-events: none` so dragging over it reaches the 3D canvas; the footer link
+  stays selectable.
+- New deps: `@react-three/postprocessing`, `@fontsource/lora`.
+
+---
+
 ## How the 3D piece works
 
 - `public/models/Lucy.glb` — the statue model (decimated to ~40k tris, 721 KB; served from `public/`).
