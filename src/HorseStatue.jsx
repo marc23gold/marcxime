@@ -12,6 +12,7 @@ import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
 const MODEL_URL = '/models/horse_statue_01_4k/horse_statue_01_4k.glb'
 
 const RADIUS = 2.5
+const ORBIT_SPEED = 0.35 // slower, more cinematic sweep
 const HEIGHT = 5
 const ROT_Y = -Math.PI / 2
 
@@ -96,7 +97,7 @@ function Spotlight() {
   useFrame((state) => {
     if (!light.current) return
     const time = state.clock.elapsedTime
-    light.current.position.set(Math.cos(time) * RADIUS, HEIGHT, Math.sin(time) * RADIUS)
+    light.current.position.set(Math.cos(time * ORBIT_SPEED) * RADIUS, HEIGHT, Math.sin(time * ORBIT_SPEED) * RADIUS)
     light.current.target.position.set(0, 1, 0)
     light.current.target.updateMatrixWorld()
   })

@@ -33,6 +33,7 @@ function Statue() {
    texture-projected beam around it — mirroring three.js webgl_lights_spotlight. */
 
 const RADIUS = 2.5
+const ORBIT_SPEED = 0.35 // slower, more cinematic sweep
 const HEIGHT = 5
 
 /* A colorful, irregular gobo texture projected by the spotlight — the
@@ -95,7 +96,7 @@ function Spotlight() {
   useFrame((state) => {
     if (!light.current) return
     const time = state.clock.elapsedTime
-    light.current.position.set(Math.cos(time) * RADIUS, HEIGHT, Math.sin(time) * RADIUS)
+    light.current.position.set(Math.cos(time * ORBIT_SPEED) * RADIUS, HEIGHT, Math.sin(time * ORBIT_SPEED) * RADIUS)
     // aim the light at the statue's centre
     light.current.target.position.set(0, 1, 0)
     light.current.target.updateMatrixWorld()
