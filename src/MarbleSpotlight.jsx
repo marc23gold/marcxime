@@ -4,18 +4,18 @@ import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { Bust } from './StatueScene'
 
-/* A single classical bust under a tall, colorful spotlight that slowly cycles
-   hue, shining down on the statue and the floor. The scene reuses the marble
-   bust geometry from StatueScene.jsx, wrapped in a slow auto-rotate. */
+/* A single classical bust under an orbiting spotlight that sweeps a colorful,
+   texture-projected beam around it — mirroring three.js webgl_lights_spotlight.
+   Reuses the marble bust geometry from StatueScene.jsx. */
 
-const WARM = '#ffe9b0'
-const COOL = '#8fa3c4'
+const RADIUS = 2.5
+const HEIGHT = 5
 
 /* Slow rotation so the whole bust is admired. */
 function Rig() {
   const ref = useRef()
   useFrame(() => {
-    if (ref.current) ref.current.rotation.y += 0.0015
+    if (ref.current) ref.current.rotation.y += 0.002
   })
   return (
     <group ref={ref}>
@@ -24,100 +24,136 @@ function Rig() {
   )
 }
 
-/* Hue-cycling colored spotlight. Uses a real three.js SpotLight (angle /
-   penumbra / decay in physical candela units) shining straight down from
-   above the statue onto the bust and the floor. */
+/* A colorful, irregular gobo texture projected by the spotlight — the
+   reference uses textures/disturb.jpg; here a generated multicolor pattern
+   gives the same projected-light-pool effect. */
+function makeGoboTexture() {
+  const size = 512
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+
+  // colourful base wash
+  const grad = ctx.createRadialGradient(size / 2, size / 2, 10, size / 2, size / 2, size / 2)
+  grad.addColorStop(0, '#fff3c4')
+  grad.addColorStop(0.3, '#ffb25e')
+  grad.addColorStop(0.6, '#ff5e8a')
+  grad.addColorStop(1, '#4f7bff')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, size, size)
+
+  // bright speckle
+  for (let i = 0; i < 500; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${(Math.random() * 0.5).toFixed(2)})`
+    const r = Math.random() * 22 + 2
+    ctx.beginPath()
+    ctx.arc(Math.random() * size, Math.random() * size, r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // dark scribbled "disturb" strokes
+  for (let i = 0; i < 40; i++) {
+    ctx.strokeStyle = `rgba(15,15,35,${(Math.random() * 0.6).toFixed(2)})`
+    ctx.lineWidth = Math.random() * 14 + 3
+    ctx.beginPath()
+    const x0 = Math.random() * size
+    const y0 = Math.random() * size
+    ctx.moveTo(x0, y0)
+    ctx.bezierCurveTo(
+      x0 + Math.random() * 120 - 60, y0 + Math.random() * 120 - 60,
+      x0 + Math.random() * 120 - 60, y0 + Math.random() * 120 - 60,
+      x0 + Math.random() * 240 - 120, y0 + Math.random() * 240 - 120,
+    )
+    ctx.stroke()
+  }
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.wrapS = THREE.RepeatWrapping
+  texture.wrapT = THREE.RepeatWrapping
+  texture.colorSpace = THREE.SRGBColorSpace
+  return texture
+}
+
+/* Orbiting spotlight with a projected gobo map and shadow casting, matching
+   the reference (angle PI/6, penumbra 1, decay 2, distance 0, intensity 100).
+   The light circle-sweeps around the bust at height 5, aimed at its centre. */
 function Spotlight() {
   const light = useRef()
+  const gobo = useMemo(() => makeGoboTexture(), [])
 
   useFrame((state) => {
     if (!light.current) return
-    const t = state.clock.elapsedTime
-    // slowly sweep a pleasant warm -> cool spectrum
-    light.current.color.setHSL((t * 0.045) % 1, 0.85, 0.5)
+    const time = state.clock.elapsedTime
+    light.current.position.set(Math.cos(time) * RADIUS, HEIGHT, Math.sin(time) * RADIUS)
+    // aim the light at the bust's centre
+    light.current.target.position.set(0, 1.2, 0)
+    light.current.target.updateMatrixWorld()
   })
 
   return (
     <spotLight
       ref={light}
-      position={[0, 4.4, 0]}
-      angle={0.6}
-      penumbra={0.55}
-      decay={2}
+      position={[RADIUS, HEIGHT, RADIUS]}
+      map={gobo}
+      castShadow
+      intensity={100}
       distance={0}
-      intensity={260}
-      color={WARM}
+      angle={Math.PI / 6}
+      penumbra={1}
+      decay={2}
+      color="#ffffff"
+      shadow-mapSize-width={1024}
+      shadow-mapSize-height={1024}
+      shadow-camera-near={2}
+      shadow-camera-far={10}
+      shadow-focus={1}
+      shadow-bias={-0.003}
     />
   )
 }
 
-/* Volumetric beam: an open, tapered cone hanging from the light down toward
-   the bust, plus drifting dust so the shaft of light reads. */
+/* A handful of drifting dust motes so the sweeping shaft reads in the air. */
 function Beam() {
-  const cone = useRef()
   const dust = useRef()
-
   useFrame((state) => {
-    const t = state.clock.elapsedTime
-    if (cone.current) {
-      cone.current.material.opacity = 0.13 + Math.sin(t * 1.4) * 0.04
-    }
-    if (dust.current) {
-      dust.current.rotation.y = t * 0.04
-    }
+    if (dust.current) dust.current.rotation.y = state.clock.elapsedTime * 0.05
   })
-
   const dustPoints = useMemo(() => {
-    const count = 450
+    const count = 350
     const positions = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
-      const radius = 0.25 + Math.random() * 0.85
+      const radius = 0.3 + Math.random() * 1.4
       const angle = Math.random() * Math.PI * 2
       positions[i * 3] = Math.cos(angle) * radius
-      positions[i * 3 + 1] = 2.0 + Math.random() * 2.1
+      positions[i * 3 + 1] = 0.5 + Math.random() * 2.4
       positions[i * 3 + 2] = Math.sin(angle) * radius
     }
     return positions
   }, [])
-
   return (
-    <group>
-      {/* beam cone: apex at the light (y 4.4), opening down to just above the bust */}
-      <mesh ref={cone} position={[0, 3.4, 0]}>
-        <coneGeometry args={[1.05, 2.0, 32, 1, true]} />
-        <meshBasicMaterial
-          color={WARM}
-          transparent
-          opacity={0.14}
-          blending={THREE.AdditiveBlending}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-        />
-      </mesh>
-      {/* drifting dust inside the shaft */}
-      <points ref={dust} position={[0, 3.0, 0]}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[dustPoints, 3]} />
-        </bufferGeometry>
-        <pointsMaterial
-          color={WARM}
-          size={0.02}
-          transparent
-          opacity={0.55}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </points>
-    </group>
+    <points ref={dust}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[dustPoints, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        color="#ffe9b0"
+        size={0.02}
+        transparent
+        opacity={0.5}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
+    </points>
   )
 }
 
-/* Dark circular stage receiving the spotlight. */
+/* Dark circular floor that receives the spotlight's projected pool and the
+   sweeping contact shadow. */
 function Floor() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
       <circleGeometry args={[7, 64]} />
-      <meshStandardMaterial color="#131315" roughness={0.85} metalness={0.1} />
+      <meshLambertMaterial color="#bcbcbc" />
     </mesh>
   )
 }
@@ -125,13 +161,14 @@ function Floor() {
 export default function MarbleSpotlight() {
   return (
     <Canvas
-      camera={{ position: [0, 2.2, 5.6], fov: 44 }}
+      shadows
+      gl={{ toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1 }}
+      camera={{ position: [6, 3.5, 4.5], fov: 40 }}
       dpr={[1, 2]}
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={['#0b0b0d']} />
-      <ambientLight intensity={0.32} color={COOL} />
-      <directionalLight position={[4, 6, 3]} intensity={0.5} color="#cfd8ff" />
+      <hemisphereLight args={['#ffffff', '#8d8d8d', 0.25]} />
 
       <Rig />
       <Spotlight />
@@ -139,12 +176,11 @@ export default function MarbleSpotlight() {
       <Floor />
 
       <OrbitControls
-        target={[0, 1.4, 0]}
+        target={[0, 1.2, 0]}
         enablePan={false}
-        minDistance={3.2}
-        maxDistance={9}
-        minPolarAngle={0.25}
-        maxPolarAngle={1.5}
+        minDistance={2}
+        maxDistance={10}
+        maxPolarAngle={Math.PI / 2}
       />
     </Canvas>
   )
