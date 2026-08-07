@@ -2,20 +2,76 @@ import { useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
-import { Bust } from './StatueScene'
+const MARBLE = '#e9e4db'
+const MARBLE_DARK = '#cfc6b4'
+
+/* A neoclassical marble bust: plinth, lathe-turned shoulders + neck, head and
+   subtle hair — a proper statue silhouette rather than stacked primitives. */
+function Bust() {
+  const profile = useMemo(
+    () => [
+      new THREE.Vector2(0.14, 1.62), // neck top
+      new THREE.Vector2(0.15, 1.4),
+      new THREE.Vector2(0.2, 1.18),
+      new THREE.Vector2(0.38, 1.0), // shoulder rise
+      new THREE.Vector2(0.55, 0.8),
+      new THREE.Vector2(0.64, 0.55),
+      new THREE.Vector2(0.66, 0.3),
+      new THREE.Vector2(0.62, 0.06),
+      new THREE.Vector2(0.58, 0.0),
+    ],
+    [],
+  )
+
+  const head = useRef()
+  useFrame((state) => {
+    if (head.current) {
+      head.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.12) * 0.15
+    }
+  })
+
+  return (
+    <group>
+      {/* plinth */}
+      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.58, 0.68, 0.6, 48]} />
+        <meshStandardMaterial color={MARBLE_DARK} roughness={0.4} metalness={0.06} />
+      </mesh>
+      <mesh position={[0, 0.62, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.44, 0.52, 0.18, 48]} />
+        <meshStandardMaterial color={MARBLE} roughness={0.35} metalness={0.08} />
+      </mesh>
+      {/* shoulders + neck, turned on a lathe profile */}
+      <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
+        <latheGeometry args={[profile, 64]} />
+        <meshStandardMaterial color={MARBLE} roughness={0.3} metalness={0.12} />
+      </mesh>
+      {/* head with a subtle classical hair cap */}
+      <group ref={head} position={[0, 2.28, 0]}>
+        <mesh castShadow receiveShadow scale={[1, 1.12, 1]}>
+          <sphereGeometry args={[0.3, 48, 40]} />
+          <meshStandardMaterial color={MARBLE} roughness={0.28} metalness={0.1} />
+        </mesh>
+        <mesh position={[0, 0.04, -0.05]} scale={[1.05, 0.82, 1.04]}>
+          <sphereGeometry args={[0.3, 40, 32]} />
+          <meshStandardMaterial color="#cbbc98" roughness={0.5} metalness={0.04} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
 
 /* A single classical bust under an orbiting spotlight that sweeps a colorful,
-   texture-projected beam around it — mirroring three.js webgl_lights_spotlight.
-   Reuses the marble bust geometry from StatueScene.jsx. */
+   texture-projected beam around it — mirroring three.js webgl_lights_spotlight. */
 
 const RADIUS = 2.5
 const HEIGHT = 5
 
-/* Slow rotation so the whole bust is admired. */
+/* Very slow rotation so the whole bust is admired. */
 function Rig() {
   const ref = useRef()
   useFrame(() => {
-    if (ref.current) ref.current.rotation.y += 0.002
+    if (ref.current) ref.current.rotation.y += 0.0008
   })
   return (
     <group ref={ref}>
