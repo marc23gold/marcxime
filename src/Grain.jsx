@@ -1,11 +1,14 @@
-import { EffectComposer, Noise } from '@react-three/postprocessing'
+import { EffectComposer, Noise, Scanline, Vignette } from '@react-three/postprocessing'
 
-/* Subtle film grain over the whole scene — a quiet "projected film" texture on
-   the dark cinematic backdrop. Drop inside any Canvas to apply. */
+/* Warm, fuzzy, dancing film grain: the Noise pass advances its seed with time
+   (true animated grain), Scanline adds a faint shutter-line texture, and a
+   soft vignette frames the edges — a cinema look over the whole scene. */
 export default function Grain() {
   return (
     <EffectComposer>
-      <Noise premultiply opacity={0.07} />
+      <Noise premultiply opacity={0.45} />
+      <Scanline opacity={0.12} density={1.0} />
+      <Vignette eskil={false} offset={0.18} darkness={0.9} />
     </EffectComposer>
   )
 }

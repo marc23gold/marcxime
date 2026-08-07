@@ -35,19 +35,28 @@ body {
 }
 
 .title h1 {
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-  letter-spacing: 0.3em;
+  font-size: clamp(1.9rem, 5vw, 3.2rem);
+  letter-spacing: 0.34em;
   text-transform: uppercase;
   margin: 0;
   font-family: 'Cormorant SC', Georgia, 'Times New Roman', serif;
   font-weight: 600;
+  background: linear-gradient(180deg, #fff6d8 0%, #ffe9b0 45%, #e3a05e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 22px rgba(255, 198, 120, 0.32));
 }
 
 .title p {
-  margin: 0.4rem 0 0;
+  margin: 0.55rem 0 0;
   font-style: italic;
-  opacity: 0.6;
-  font-size: 0.95rem;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.2em;
+  font-size: 1.05rem;
+  opacity: 0.78;
+  color: #eee6d3;
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.6);
 }
 
 .links {
@@ -64,7 +73,9 @@ body {
   text-decoration: none;
   border-bottom: 1px solid rgba(233, 228, 219, 0.35);
   padding-bottom: 2px;
-  font-size: 1rem;
+  font-size: 1.05rem;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.12em;
   transition: color 0.2s ease, border-color 0.2s ease;
 }
 
