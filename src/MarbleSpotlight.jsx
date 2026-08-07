@@ -1,84 +1,34 @@
 import { useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useLoader } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import * as THREE from 'three'
-const MARBLE = '#e9e4db'
-const MARBLE_DARK = '#cfc6b4'
 
-/* A neoclassical marble bust: plinth, lathe-turned shoulders + neck, head and
-   subtle hair — a proper statue silhouette rather than stacked primitives. */
-function Bust() {
-  const profile = useMemo(
-    () => [
-      new THREE.Vector2(0.14, 1.62), // neck top
-      new THREE.Vector2(0.15, 1.4),
-      new THREE.Vector2(0.2, 1.18),
-      new THREE.Vector2(0.38, 1.0), // shoulder rise
-      new THREE.Vector2(0.55, 0.8),
-      new THREE.Vector2(0.64, 0.55),
-      new THREE.Vector2(0.66, 0.3),
-      new THREE.Vector2(0.62, 0.06),
-      new THREE.Vector2(0.58, 0.0),
-    ],
-    [],
-  )
+/* The genuine Stanford "Lucy" marble statue scan (the same model the three.js
+   webgl_lights_spotlight demo uses), loaded as a binary PLY and scaled to fit
+   the scene exactly as in the reference (scale 0.0024, y 0.8). */
 
-  const head = useRef()
-  useFrame((state) => {
-    if (head.current) {
-      head.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.12) * 0.15
-    }
-  })
-
+function Statue() {
+  const geometry = useLoader(PLYLoader, '/models/Lucy100k.ply')
   return (
-    <group>
-      {/* plinth */}
-      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.58, 0.68, 0.6, 48]} />
-        <meshStandardMaterial color={MARBLE_DARK} roughness={0.4} metalness={0.06} />
-      </mesh>
-      <mesh position={[0, 0.62, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.44, 0.52, 0.18, 48]} />
-        <meshStandardMaterial color={MARBLE} roughness={0.35} metalness={0.08} />
-      </mesh>
-      {/* shoulders + neck, turned on a lathe profile */}
-      <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
-        <latheGeometry args={[profile, 64]} />
-        <meshStandardMaterial color={MARBLE} roughness={0.3} metalness={0.12} />
-      </mesh>
-      {/* head with a subtle classical hair cap */}
-      <group ref={head} position={[0, 2.28, 0]}>
-        <mesh castShadow receiveShadow scale={[1, 1.12, 1]}>
-          <sphereGeometry args={[0.3, 48, 40]} />
-          <meshStandardMaterial color={MARBLE} roughness={0.28} metalness={0.1} />
-        </mesh>
-        <mesh position={[0, 0.04, -0.05]} scale={[1.05, 0.82, 1.04]}>
-          <sphereGeometry args={[0.3, 40, 32]} />
-          <meshStandardMaterial color="#cbbc98" roughness={0.5} metalness={0.04} />
-        </mesh>
-      </group>
-    </group>
+    <mesh
+      geometry={geometry}
+      position={[0, 0.8, 0]}
+      rotation={[0, -Math.PI / 2, 0]}
+      scale={0.0024}
+      castShadow
+      receiveShadow
+    >
+      <meshLambertMaterial color="#eae6dc" />
+    </mesh>
   )
 }
 
-/* A single classical bust under an orbiting spotlight that sweeps a colorful,
+/* A single classical statue under an orbiting spotlight that sweeps a colorful,
    texture-projected beam around it — mirroring three.js webgl_lights_spotlight. */
 
 const RADIUS = 2.5
 const HEIGHT = 5
-
-/* Very slow rotation so the whole bust is admired. */
-function Rig() {
-  const ref = useRef()
-  useFrame(() => {
-    if (ref.current) ref.current.rotation.y += 0.0008
-  })
-  return (
-    <group ref={ref}>
-      <Bust />
-    </group>
-  )
-}
 
 /* A colorful, irregular gobo texture projected by the spotlight — the
    reference uses textures/disturb.jpg; here a generated multicolor pattern
@@ -141,8 +91,8 @@ function Spotlight() {
     if (!light.current) return
     const time = state.clock.elapsedTime
     light.current.position.set(Math.cos(time) * RADIUS, HEIGHT, Math.sin(time) * RADIUS)
-    // aim the light at the bust's centre
-    light.current.target.position.set(0, 1.2, 0)
+    // aim the light at the statue's centre
+    light.current.target.position.set(0, 1, 0)
     light.current.target.updateMatrixWorld()
   })
 
@@ -207,7 +157,7 @@ function Beam() {
    sweeping contact shadow. */
 function Floor() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
       <circleGeometry args={[7, 64]} />
       <meshLambertMaterial color="#bcbcbc" />
     </mesh>
@@ -219,20 +169,20 @@ export default function MarbleSpotlight() {
     <Canvas
       shadows
       gl={{ toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1 }}
-      camera={{ position: [6, 3.5, 4.5], fov: 40 }}
+      camera={{ position: [7, 4, 1], fov: 40 }}
       dpr={[1, 2]}
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={['#0b0b0d']} />
       <hemisphereLight args={['#ffffff', '#8d8d8d', 0.25]} />
 
-      <Rig />
+      <Statue />
       <Spotlight />
       <Beam />
       <Floor />
 
       <OrbitControls
-        target={[0, 1.2, 0]}
+        target={[0, 1, 0]}
         enablePan={false}
         minDistance={2}
         maxDistance={10}
