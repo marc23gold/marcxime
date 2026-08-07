@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { Suspense, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useLoader } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
@@ -176,7 +176,9 @@ export default function MarbleSpotlight() {
       <color attach="background" args={['#0b0b0d']} />
       <hemisphereLight args={['#ffffff', '#8d8d8d', 0.25]} />
 
-      <Statue />
+      <Suspense fallback={null}>
+        <Statue />
+      </Suspense>
       <Spotlight />
       <Beam />
       <Floor />
