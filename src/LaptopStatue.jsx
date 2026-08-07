@@ -5,11 +5,18 @@ import * as THREE from 'three'
 import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
 import Grain from './Grain'
 
-/* The genuine Stanford "Lucy" statue, decimated to ~10k tris and exported as a
-   small GLB (181 KB vs the 1.9 MB PLY) for fast loads and light mobile GPUs. */
+/* A classic laptop (glTF, own PBR materials) seated on a plinth and lit by the
+   same orbiting, colorful, texture-projected spotlight as the other pieces.
+   Replaces the hands on the random-statue branch. */
+
+const MODEL_URL = '/models/classic_laptop_2k/classic_laptop_2k.gltf'
+
+const RADIUS = 3.5
+const ORBIT_SPEED = 0.35 // slower, more cinematic sweep
+const HEIGHT = 5
 
 function Statue() {
-  const { scene } = useGLTF('/models/Lucy.glb')
+  const { scene } = useGLTF(MODEL_URL)
 
   useEffect(() => {
     scene.traverse((o) => {
@@ -21,32 +28,25 @@ function Statue() {
   }, [scene])
 
   return (
-    <primitive
-      object={scene}
-      position={[0, 0.8, 0]}
-      rotation={[0, -Math.PI / 2, 0]}
-      scale={0.0024}
-    />
+    <group>
+      {/* wide plinth (floor top is y=0) */}
+      <mesh position={[0, -0.5, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.3, 1.5, 1.0, 64]} />
+        <meshStandardMaterial color="#d9d2c6" roughness={0.4} metalness={0.06} />
+      </mesh>
+      {/* laptop rested on the plinth (model base ~y 0) */}
+      <primitive object={scene} scale={3} position={[0, 0.04, 0]} rotation={[0, -0.5, 0]} />
+    </group>
   )
 }
 
-/* A single classical statue under an orbiting spotlight that sweeps a colorful,
-   texture-projected beam around it — mirroring three.js webgl_lights_spotlight. */
-
-const RADIUS = 2.5
-const ORBIT_SPEED = 0.35 // slower, more cinematic sweep
-const HEIGHT = 5
-
-/* A colorful, irregular gobo texture projected by the spotlight — the
-   reference uses textures/disturb.jpg; here a generated multicolor pattern
-   gives the same projected-light-pool effect. */
+/* Colorful, irregular gobo texture projected by the spotlight. */
 function makeGoboTexture() {
   const size = 512
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = size
   const ctx = canvas.getContext('2d')
 
-  // colourful base wash
   const grad = ctx.createRadialGradient(size / 2, size / 2, 10, size / 2, size / 2, size / 2)
   grad.addColorStop(0, '#fff3c4')
   grad.addColorStop(0.3, '#ffb25e')
@@ -55,7 +55,6 @@ function makeGoboTexture() {
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, size, size)
 
-  // bright speckle
   for (let i = 0; i < 500; i++) {
     ctx.fillStyle = `rgba(255,255,255,${(Math.random() * 0.5).toFixed(2)})`
     const r = Math.random() * 22 + 2
@@ -64,7 +63,6 @@ function makeGoboTexture() {
     ctx.fill()
   }
 
-  // dark scribbled "disturb" strokes
   for (let i = 0; i < 40; i++) {
     ctx.strokeStyle = `rgba(15,15,35,${(Math.random() * 0.6).toFixed(2)})`
     ctx.lineWidth = Math.random() * 14 + 3
@@ -87,9 +85,7 @@ function makeGoboTexture() {
   return texture
 }
 
-/* Orbiting spotlight with a projected gobo map and shadow casting, matching
-   the reference (angle PI/6, penumbra 1, decay 2, distance 0, intensity 100).
-   The light circle-sweeps around the bust at height 5, aimed at its centre. */
+/* Orbiting spotlight with a projected gobo map and shadow casting. */
 function Spotlight() {
   const light = useRef()
   const gobo = useMemo(() => makeGoboTexture(), [])
@@ -98,8 +94,7 @@ function Spotlight() {
     if (!light.current) return
     const time = state.clock.elapsedTime
     light.current.position.set(Math.cos(time * ORBIT_SPEED) * RADIUS, HEIGHT, Math.sin(time * ORBIT_SPEED) * RADIUS)
-    // aim the light at the statue's centre
-    light.current.target.position.set(0, 1, 0)
+    light.current.target.position.set(0, 0.8, 0)
     light.current.target.updateMatrixWorld()
   })
 
@@ -111,7 +106,7 @@ function Spotlight() {
       castShadow
       intensity={100}
       distance={0}
-      angle={Math.PI / 6}
+      angle={Math.PI / 5}
       penumbra={1}
       decay={2}
       color="#ffffff"
@@ -125,7 +120,7 @@ function Spotlight() {
   )
 }
 
-/* A handful of drifting dust motes so the sweeping shaft reads in the air. */
+/* Drifting dust so the sweeping shaft reads in the air. */
 function Beam() {
   const dust = useRef()
   useFrame((state) => {
@@ -135,10 +130,10 @@ function Beam() {
     const count = DUST_COUNT
     const positions = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
-      const radius = 0.3 + Math.random() * 1.4
+      const radius = 0.4 + Math.random() * 1.6
       const angle = Math.random() * Math.PI * 2
       positions[i * 3] = Math.cos(angle) * radius
-      positions[i * 3 + 1] = 0.5 + Math.random() * 2.4
+      positions[i * 3 + 1] = 0.3 + Math.random() * 2.2
       positions[i * 3 + 2] = Math.sin(angle) * radius
     }
     return positions
@@ -160,23 +155,22 @@ function Beam() {
   )
 }
 
-/* Dark circular floor that receives the spotlight's projected pool and the
-   sweeping contact shadow. */
+/* Dark circular floor that receives the spotlight's projected pool and shadow. */
 function Floor() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
-      <circleGeometry args={[7, 64]} />
+      <circleGeometry args={[8, 64]} />
       <meshLambertMaterial color="#bcbcbc" />
     </mesh>
   )
 }
 
-export default function MarbleSpotlight() {
+export default function LaptopStatue() {
   return (
     <Canvas
       shadows
       gl={{ toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1 }}
-      camera={{ position: [7, 4, 1], fov: 40 }}
+      camera={{ position: [6.5, 3, 2.5], fov: 40 }}
       dpr={DPR}
       style={{ position: 'absolute', inset: 0 }}
     >
@@ -192,7 +186,7 @@ export default function MarbleSpotlight() {
       <Grain />
 
       <OrbitControls
-        target={[0, 1, 0]}
+        target={[0, 0.8, 0]}
         enablePan={false}
         minDistance={2}
         maxDistance={10}
