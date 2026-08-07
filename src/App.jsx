@@ -36,8 +36,9 @@ export default function App() {
       <Suspense fallback={null}>
         <Scene />
       </Suspense>
+      <div className="riso" aria-hidden="true" />
       <header className="title">
-        <h1>marcxime</h1>
+        <h1 data-text="marcxime">marcxime</h1>
         <p>a work in progress</p>
       </header>
       <footer className="links">
