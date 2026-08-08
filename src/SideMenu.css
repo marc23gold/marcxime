@@ -1,23 +1,21 @@
-/* Left-edge menu.
-   The strip is pointer-events: none so canvas orbit gestures keep working
-   everywhere except on the interactive pieces themselves. z-index 2 keeps it
-   below the riso grain overlay (3) and level with the title. */
+/* Left-side collapsible menu, built as a standalone overlay.
+   The wrapper covers the viewport but is click-transparent (pointer-events:
+   none); every interactive piece re-enables pointer-events explicitly.
+   z-index 4 keeps the whole menu above title (2), loading bar and grain (3),
+   so nothing can paint over or swallow clicks on the toggle — the earlier bug
+   was the centered title's invisible full-width box sitting on top of it. */
 .side-menu {
   position: fixed;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: min(280px, 80vw);
-  z-index: 2;
+  inset: 0;
+  z-index: 4;
   pointer-events: none;
 }
 
-/* Hamburger toggle: top-left corner, clear of the centered title. */
+/* Hamburger toggle: fixed at the top-left corner, clear of the centered title. */
 .side-menu__toggle {
-  position: absolute;
+  position: fixed;
   top: 1.5rem;
   left: 0;
-  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,30 +45,31 @@
   outline-offset: 2px;
 }
 
-/* Backdrop overlay: between canvas (z-index auto) and menu (z-index 2).
-   pointer-events: none when closed, auto when open so clicks close the menu. */
+/* Backdrop: dims the scene behind the open panel. Click-transparent and
+   invisible while closed, clickable+visible while open. */
 .side-menu__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1;
   background: rgba(0, 0, 0, 0.45);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 
 .side-menu.is-open .side-menu__backdrop {
   pointer-events: auto;
   opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease;
 }
 
-/* Panel: below the toggle, slides in from the left, sized to content with
-   internal scroll. */
+/* Panel: slides in from the left edge, hangs below the toggle, scrolls
+   internally if the content is taller than the viewport. */
 .side-menu__panel {
-  position: absolute;
+  position: fixed;
   top: calc(1.5rem + 3.5rem);
   left: 0;
-  transform: translateX(-100%);
   width: min(280px, 80vw);
   max-height: calc(100vh - 6.5rem);
   overflow-y: auto;
@@ -79,8 +78,9 @@
   border: 1px solid rgba(233, 228, 219, 0.18);
   border-left: none;
   border-radius: 0 3px 3px 0;
-  pointer-events: auto;
   user-select: auto;
+  pointer-events: auto;
+  transform: translateX(-100%);
   visibility: hidden;
   opacity: 0;
   transition: transform 0.35s ease, opacity 0.3s ease, visibility 0s linear 0.35s;
@@ -184,18 +184,23 @@
 }
 
 @keyframes sideMenuShake {
-  0%, 100% { transform: translateX(0); }
-  25%      { transform: translateX(4px); }
-  75%      { transform: translateX(-4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .side-menu__toggle {
     animation: none;
   }
-  .side-menu__panel {
-    transition: none;
-  }
+  .side-menu__panel,
   .side-menu__backdrop {
     transition: none;
   }

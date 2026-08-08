@@ -39,6 +39,15 @@ body {
   text-align: center;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
   z-index: 2;
+  /* The full-width box must not swallow clicks meant for the menu toggle
+     or panel below it (same z-index, later DOM order). Text itself is
+     re-enabled below, so selection still works. */
+  pointer-events: none;
+}
+
+.title h1,
+.title p {
+  pointer-events: auto;
 }
 
 .title h1 {
