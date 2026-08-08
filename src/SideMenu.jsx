@@ -1,13 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './SideMenu.css'
 
-const NAV_LINKS = [
-  { label: 'Home', href: '#' },
-  { label: 'About', href: '#' },
-  { label: 'Work', href: '#' },
-  { label: 'Contact', href: '#' },
-]
-
 const SOCIAL_LINKS = [
   { label: 'GitHub', href: 'https://github.com/marc23gold', external: true },
 ]
@@ -101,19 +94,6 @@ export default function SideMenu() {
             <MenuIcon kind="close" />
           </button>
         </div>
-
-        <nav className="side-menu__nav" aria-label="Primary">
-          <p className="side-menu__section-label">Navigation</p>
-          <ul className="side-menu__list">
-            {NAV_LINKS.map(({ label, href }) => (
-              <li key={label}>
-                <a className="side-menu__link" href={href} onClick={handleClose}>
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
 
         <nav className="side-menu__nav" aria-label="Social">
           <p className="side-menu__section-label">Social</p>
