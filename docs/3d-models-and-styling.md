@@ -7,11 +7,11 @@ spotlight with a projected gobo map and shadows (modeled on three.js
 `webgl_lights_spotlight`).
 
 **Current state (branch `random-statue`):** on each page load, `App.jsx` randomly
-picks one of three lazy-loaded scenes — `Lucy` (sculpture), `Horse`, `Laptop` —
-each a full-screen Canvas. See "Current setup" below.
+picks one of two lazy-loaded scenes — `Lucy` (sculpture) or `Laptop` — each a
+full-screen Canvas. See "Current setup" below.
 
 Current entry point: `src/App.jsx` → random picker → one of
-`MarbleSpotlight.jsx` / `HorseStatue.jsx` / `LaptopStatue.jsx`.
+`MarbleSpotlight.jsx` / `LaptopStatue.jsx`.
 
 ---
 
@@ -87,11 +87,12 @@ One branch keeps **all the pieces together**. `App.jsx` code-splits and randomly
 loads one scene per visit, so the page only downloads the chosen piece's JS chunk
 + model.
 
-- Pool: `MarbleSpotlight` (Lucy), `HorseStatue`, `LaptopStatue`, each a
-  self-contained `<Canvas>` ready to drop into the list.
+- Pool: `MarbleSpotlight` (Lucy), `LaptopStatue`, each a self-contained
+  `<Canvas>` ready to drop into the list. (The horse statue was removed — it
+  loaded slowly and failed to appear on the deployed site.)
 - Random picker uses `useState(() => pickScene(SCENES))` → one choice per load.
 - **Mobile weighting** (`src/mobile.js` detects `(pointer: coarse)`): lighter
-  scenes get higher weight on phones (laptop `2×`, Lucy `1×`, horse `0.5×`).
+  scenes get higher weight on phones (Lucy `2×`, laptop `1×`; desktop `1:1`).
 
 ### Adding / changing a piece in the pool
 1. Add the model to `public/models/<slug>/` (folder structure intact for glTF).
@@ -105,10 +106,10 @@ loads one scene per visit, so the page only downloads the chosen piece's JS chun
   chunk; only the chosen chunk + model downloads.
 - **Mobile budget** (`src/mobile.js`): DPR `[1,1.5]` vs `[1,2]`, spotlight shadow
   map `512²` vs `1024²`, dust `150` vs `350` motes.
-- **Asset size** is now ~1.9 MB total:
-  - Horse: **6.0 MB → 1.58 MB** — `@gltf-transform/cli resize` (4K→2K) + `webp`.
+- **Asset size** is now ~1.0 MB total for both models:
   - Lucy: **1.9 MB PLY → 721 KB GLB** at ~40k tris (see Lucy decimation below).
-  - Laptop: ~5.7 MB (2K textures, kept as-is).
+  - Laptop: **5.7 MB → ~950 KB** — textures re-encoded 2K→1K (`PIL`, q80).
+  - Horse: removed (loaded slowly and failed to render on the deployed site).
 
 ### Portfolio framing (engineer / musician / artist)
 One piece per discipline makes the rotating pool say "who I am":
@@ -364,8 +365,8 @@ export const Afterimage = wrapEffect(AfterimageEffect)
 ## Adding a glTF / GLB model (glTF flow)
 
 For models that come as `.gltf` + `.bin` + a `textures/` folder (or a single `.glb`),
-use drei's `useGLTF` instead of `PLYLoader`. The horse statue on branch `statue/horse`
-is the reference example: `src/HorseStatue.jsx` + `public/models/horse_statue_01_4k/`.
+use drei's `useGLTF` instead of `PLYLoader`. The laptop scene is the reference
+example: `src/LaptopStatue.jsx` + `public/models/classic_laptop_2k/`.
 
 1. **Copy the model's folder into `public/models/` preserving its internal structure.**
    The loader resolves the `.bin` and `textures/*.jpg` refs relative to the `.gltf` path,
@@ -390,9 +391,10 @@ is the reference example: `src/HorseStatue.jsx` + `public/models/horse_statue_01
    <Suspense fallback={null}><Model /></Suspense>
    ```
 3. **Size it from the model's accessor bounds.** Read the `.gltf` JSON `accessors` and use
-   the POSITION min/max to find the model's height, then pick a `scale` so it's ~2 units
-   tall like Lucy. The horse was ~0.21 tall natively, so `scale 10` ≈ 2.1 units. Seat its
-   base on the floor/plinth via `position.y` (floor top is `y = 0`; stage floor is `y = -1`).
+   the POSITION min/max to find the model's height, then pick a `scale` to frame it like
+   Lucy (~2 units). The laptop was ~0.45 tall natively, so `scale 3` ≈ 1.35 units on its
+   plinth. Seat its base on the floor/plinth via `position.y` (floor top is `y = 0`; stage
+   floor is `y = -1`).
 4. **Materials carry over.** A glTF usually brings its own PBR textures, so it looks
    different from Lucy's flat marble (e.g. sculpted stone/bronze). To force a uniform marble
    look, override the primitives' materials or hide them via `traverse`.
@@ -401,7 +403,8 @@ is the reference example: `src/HorseStatue.jsx` + `public/models/horse_statue_01
    - `castShadow`/`receiveShadow` do **not** propagate from `<primitive>` → set them per-mesh
      via `scene.traverse` (as above).
    - Keep the folder structure intact so texture refs resolve.
-   - Model size includes textures (the horse folder is ~5.8 MB from its 4K JPGs).
+   - Model size includes textures — the laptop's 2K JPGs alone were ~5.2 MB
+     before they were re-encoded to 1K (~436 KB total).
 
 ## Converting a `.blend` with the Blender CLI
 
@@ -448,9 +451,9 @@ Install-free via npx (the package is **`@gltf-transform/cli`**, not `gltf-transf
 npx --yes @gltf-transform/cli resize in.gltf out.glb --width 2048 --height 2048
 npx --yes @gltf-transform/cli webp out2.glb out3.glb        # convert textures to WebP
 ```
-This is how the horse went 6.0 MB → 1.58 MB (2K + WebP). `resize`/`webp` work in
-place on `.gltf` or `.glb`. (Draco/meshopt need a client-side decoder — skip unless
-you wire a DRACOLoader.)
+This is how the horse went 6.0 MB → 1.58 MB (2K + WebP) before it was removed
+from the pool. `resize`/`webp` work in place on `.gltf` or `.glb`. (Draco/meshopt
+need a client-side decoder — skip unless you wire a DRACOLoader.)
 
 ## Decimating & exporting a GLB with Node + three (Lucy)
 

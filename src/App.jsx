@@ -7,13 +7,13 @@ import './App.css'
    model for the chosen piece. On mobile we weight the lighter scenes higher. */
 
 const MarbleSpotlight = lazy(() => import('./MarbleSpotlight'))
-const HorseStatue = lazy(() => import('./HorseStatue'))
 const LaptopStatue = lazy(() => import('./LaptopStatue'))
 
+/* Two pieces remain: Lucy (708 KB GLB) and the laptop (lighter once its
+   textures are re-encoded). On mobile we weight the lighter Lucy higher. */
 const SCENES = [
-  { Comp: MarbleSpotlight, weight: isMobile ? 1 : 1 }, // Lucy
-  { Comp: HorseStatue, weight: isMobile ? 0.5 : 1 },
-  { Comp: LaptopStatue, weight: isMobile ? 2 : 1 }, // lightest
+  { Comp: MarbleSpotlight, weight: isMobile ? 2 : 1 }, // Lucy
+  { Comp: LaptopStatue, weight: isMobile ? 1 : 1 },
 ]
 
 const GITHUB_URL = 'https://github.com/marc23gold'

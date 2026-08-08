@@ -19,7 +19,16 @@ body {
 .app {
   position: relative;
   width: 100%;
+  /* 100dvh keeps the canvas glued to the visible viewport on mobile so the
+     URL-bar show/hide doesn't resize the scene mid-rotation. */
   height: 100%;
+  height: 100dvh;
+}
+
+/* The canvas owns gestures: let OrbitControls handle every touch/drag without
+   the browser hijacking them for scroll or text selection. */
+.app canvas {
+  touch-action: none;
 }
 
 .title {
@@ -28,8 +37,10 @@ body {
   left: 0;
   right: 0;
   text-align: center;
-  user-select: text;
-  cursor: text;
+  /* Decorative overlay: let pointer events fall through to the canvas so a
+     drag starting on the title rotates the statue instead of selecting text. */
+  pointer-events: none;
+  user-select: none;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
   z-index: 2;
 }
@@ -62,10 +73,13 @@ body {
   left: 0;
   right: 0;
   text-align: center;
+  /* Only the anchor is interactive; the rest of the strip passes through. */
+  pointer-events: none;
   z-index: 2;
 }
 
 .links a {
+  pointer-events: auto;
   color: #e9e4db;
   text-decoration: none;
   border-bottom: 1px solid rgba(233, 228, 219, 0.35);
