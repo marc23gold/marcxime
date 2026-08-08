@@ -15,6 +15,72 @@ Current entry point: `src/App.jsx` → random picker → one of
 
 ---
 
+## Design language & visual effects
+
+### One-line intent
+**Warm, grainy, cinematic film** — a 3D artifact spotlit in a dark room, graded
+like a still from an old film: soft bloom on the highlights, visible warm grain,
+a whisper of halftone print texture, and delicate cream film-title typography.
+Reads *filmic and hand-developed*, not crisp digital video or neon.
+
+### Mood keywords (target)
+- Warm · grainy · soft · dreamy · cinematic · hand-made · print-shop texture
+- **Avoid:** cold/clinical, crisp/glossy, TV-static scanlines, comic-book dots,
+  neon glow, tacky gold/gradient type, glitch/RGB-split.
+
+### Palette
+| Token | Hex | Use |
+|---|---|---|
+| Night background | `#0b0b0d` | page/canvas backdrop (the dark "theater") |
+| Warm cream (title) | `#f0e9d8` | H1 + tagline |
+| Soft cream (links) | `#e9e4db` | footer link (hover → `#ffe9b0`) |
+| Riso ink wash | gold `#ffa860` → rose `#ff505a` → oil-teal `#769cff` | `.riso` gradient (soft-light) |
+
+### Typography
+- **Cormorant Garamond** (elegant high-contrast film-title serif), self-hosted via
+  `@fontsource/cormorant-garamond` (300 / 400 / 500 + italics). Loaded in `src/main.jsx`.
+- Title: **500**, uppercase, tracked `0.18em`, warm cream — reads as a classic film
+  **title card**. Tagline: **400 italic**. Footer: **400**.
+- Text is **selectable** (`user-select: text`) so the title/tagline can be copied.
+- **Lessons:** a delicate high-contrast serif fits the grain; plain Lora felt flat, and
+  Cormorant SC + gold gradient and glitch/RGB-split read "tacky" — both removed.
+
+### Effects stack (applied over every scene)
+`src/Grain.jsx` — an `EffectComposer` (from `@react-three/postprocessing`), in order:
+
+1. **Cinematic bloom** — the hero. `<Bloom>` `intensity 0.85`, `luminanceThreshold 0.55`,
+   `luminanceSmoothing 0.6`, `mipmapBlur`, `radius 0.85`. Low threshold means the whole
+   frame soft-glows, not just white-hot points → dreamy lift that also "brightens" the dark scene.
+2. **Warm film grain** — `<Noise premultiply opacity={0.22}>`. Fine, animated
+   (`rand(uv*(1.0+time))`), clearly visible = the "grainy film" hero.
+3. **Halftone (dot-screen)** — `<DotScreen scale 6, opacity 0.06, SOFT_LIGHT>`.
+   High `scale` = many tiny dots; kept at a whisper so it textures, never reads as print/comic.
+4. **Vignette** — `<Vignette darkness 0.2, offset 0.35>` — gentle, keeps the frame bright.
+
+`src/App.css` `.riso` overlay — a fixed **risograph grain "light"** layer (soft-light,
+`z-index 3`, pointer-events none): an animated SVG `feTurbulence` fractal-noise mask
+(`rec opacity 0.7`) over a warm **riso-ink gradient** (gold/rose/oil-teal), jittered by
+`@keyframes risoDrift` in steps → dancing, off-registration print texture.
+
+### 3D lighting
+A single **orbiting colorful spotlight** (`SpotLight` + generated `spotLight.map` gobo
+texture, projected light pool + shadows) — modeled on three.js
+`webgl_lights_spotlight`. `NeutralToneMapping`, hemisphere fill light, dark stage floor.
+
+### Tuning knobs (quick levers)
+- `src/Grain.jsx` — bloom `intensity`/`luminanceThreshold` (more/less glow), `Noise`
+  `opacity` (grain amount), `DotScreen` `scale`/`opacity` (halftone fineness/strength),
+  `Vignette` `darkness`.
+- `src/App.css` `.riso` `opacity` / `rec opacity` — riso grain intensity.
+- `src/App.css` `.title` — tracking, weight, size, color.
+
+### Effects history (what didn't fit, why removed)
+- **Scanline/strong noise** → read as retro TV, not film.
+- **Periodic glitch / RGB-split title** → fought the warm mood; removed.
+- **Gold gradient / glow type, Cormorant SC** → too ornate/tacky; dropped for plain cream.
+
+---
+
 ## Current setup: `random-statue` branch
 
 One branch keeps **all the pieces together**. `App.jsx` code-splits and randomly
@@ -60,31 +126,210 @@ One piece per discipline makes the rotating pool say "who I am":
 
 ---
 
-### Cinematic finishing layer (film grain, riso, glitch, type)
+### Cinematic finishing layer (film grain, riso, halftone, bloom, type)
 
 Applied on `random-statue` over every scene in the pool:
 
-- **Warm film grain** — `src/Grain.jsx`: an `EffectComposer` with `<Noise
-  premultiply opacity={0.2}>` (the grain animates — shader is `rand(uv*(1.0+time))`)
-  plus a soft `<Vignette darkness={0.7}>`. **Lesson:** scanlines + strong noise read
-  as a retro TV, not film — remove `Scanline`, keep grain fine and low-opacity.
+- **Cinematic bloom** — `src/Grain.jsx`: the `EffectComposer` centers on a soft
+  `<Bloom>` (`intensity 0.85`, `luminanceThreshold 0.55`, `luminanceSmoothing 0.6`,
+  `mipmapBlur`, `radius 0.85`) that lifts the whole frame into a gentle dreamy glow —
+  the hero of the warm film look.
+- **Warm film grain** — same composer layers `<Noise premultiply opacity={0.22}>`
+  (animated — shader is `rand(uv*(1.0+time))`) — **this is the "grainy film" hero** —
+  plus a light `<Vignette darkness={0.2}>`. The CSS `.riso` overlay (rec `opacity 0.7`)
+  adds the animated risograph fractal-noise grain on top. **Lesson:** scanlines +
+  strong noise read as a retro TV, not film — remove `Scanline`; keep grain fine and
+  warm, just clearly visible.
+- **Halftone (dot-screen) pass** — a whisper of `<DotScreen>` print texture:
+  `scale 6`, `angle π/4`, `opacity 0.06`, blended `SOFT_LIGHT`. High `scale` = many
+  tiny dots; kept this faint so it never reads as print/comic. If dots still read too
+  big, raise `scale` further (finer) and/or drop `opacity`.
+  `@react-three/postprocessing` v3 has **no `Halftone` wrapper** and the raw
+  `postprocessing` v6 dropped `HalftoneEffect` — `DotScreen` is the equivalent
+  halftone screen to use here. `BlendFunction` is imported from `postprocessing`.
 - **Risograph grain overlay** — a fixed `.riso` div (soft-light blend, `z-index 3`,
   pointer-events none) combining an animated SVG `feTurbulence` fractal-noise layer
   with a **warm riso-ink gradient** (gold/rose/oil-teal). `@keyframes risoDrift`
   jitters it in steps — dancing, off-registration print texture.
-- **Periodic glitch** — the title glitches every **12s**: two pseudo-element copies
-  of "marcxime" (red `#ff6b5e` / cyan `#63f5e0`) burst for ~0.7s near the 92% mark
-  of `glitchA`/`glitchB` keyframes (RGB-split slices). Tune the `%` windows or the
-  `12s` duration to taste.
-- **Typography** — **Lora** (soft serif) self-hosted via `@fontsource` (400 /
-  400-italic / 500). Title: Lora 500, letterspaced caps, plain warm cream
-  `#eee6d2` (gradient/glow versions were too ornate — removed). Body/footer: Lora
-  400. **Lesson:** Cormorant SC + gold gradient read "tacky" — softer, lower-contrast
-  type suited the warm film mood better.
-- **Text selectability** — the title deliberately has `user-select: none` +
-  `pointer-events: none` so dragging over it reaches the 3D canvas; the footer link
-  stays selectable.
-- New deps: `@react-three/postprocessing`, `@fontsource/lora`.
+- **Periodic glitch (removed)** — a color-split RGB glitch burst on the title was
+  cut — it fought the warm film mood. The title is now clean and cinematic.
+- **Typography** — **Cormorant Garamond** (elegant high-contrast film-title serif)
+  self-hosted via `@fontsource` (300 / 400 / 500 + italics). Title: Cormorant 500
+  uppercase, softly tracked caps (`0.18em`), plain warm cream `#f0e9d8` (gradient/glow
+  versions were too ornate — removed). Tagline: Cormorant 400 italic. Body/footer:
+  Cormorant 400. **Lesson:** a delicate high-contrast serif reads "film title card"
+  and fits the warm grain better than a plain book serif like Lora.
+- **Text selectability** — the title is now **selectable** (`user-select: text`,
+  `cursor: text`), so "marcxime" and its tagline can be copied. This means the
+  top-center strip no longer passes drags through to the 3D canvas (it used to have
+  `pointer-events: none`); the footer link stays selectable too.
+- New deps: `@react-three/postprocessing`, `@fontsource/cormorant-garamond`.
+
+---
+
+## Afterimage effect (experiment: `experiment/afterimage` branch)
+
+A **cinematic afterimage / motion-trail** pass: when the user rotates or drags the
+statue (OrbitControls), the bright moving highlights smear into a soft, exponentially
+decaying afterglow that fades back to the crisp frame over ~a second. When the camera is
+still, static content stays perfectly crisp (`max()` keeps the current frame), so there
+is **no visible ghosting at rest** — trails only appear during interaction, which is the
+desired behavior.
+
+**Why custom:** `@react-three/postprocessing` v3 has no `Afterimage` wrapper, and the raw
+`postprocessing` v6 **removed both `AfterimageEffect` and `FeedbackBuffer`** — they existed
+only in ≤ v5. So the effect is rebuilt on top of the v6 `Effect` API (`src/Afterimage.jsx`),
+registered with `wrapEffect`, and stacked inside the existing `<EffectComposer>` in
+`src/Grain.jsx` (after Bloom, so the trails inherit the dreamy glow).
+
+### How the feedback loop works
+`Effect.update(renderer, inputBuffer, deltaTime)` is called by postprocessing **right before
+the effect's own fullscreen pass** runs — that ordering is what makes a feedback effect
+possible inside a normal (non-special) pass chain:
+
+1. Ping-pong **two** `WebGLRenderTarget`s (`_read`, `_write`).
+2. In `update`, render a fullscreen quad (plain `ShaderMaterial` on a `PlaneGeometry(2,2)`
+   with an ortho camera) into `_write`:
+   `newA = max(currentFrame, oldAccumulation × damping)`.
+3. Swap `_read`/`_write`; the freshly accumulated texture is now the stored frame.
+4. The effect's own fragment shader just draws that stored accumulation back onto the
+   screen with `BlendFunction.NORMAL` (opacity 1) → the frame becomes current + fading trails.
+
+`damping` is a **per-frame multiplier** on the stored accumulation (≈ exponential decay).
+Lower `damping` = shorter trails.
+
+### postprocessing v6 API gotchas (verified, cost a debug cycle)
+- **Effects MUST define `mainImage(const in vec4 inputColor, const in vec2 uv, out vec4
+  outputColor)` (or `mainUv`)**, NOT a bare `void main()`.
+  Failure = runtime error `Could not find mainImage or mainUv function (AfterimageEffect)`
+  thrown from `EffectPass.initialize`, which (with no error boundary) blanked the whole page
+  in React 19. Use this shape:
+  ```glsl
+  uniform sampler2D tOld;
+  void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+    outputColor = texture2D(tOld, uv);
+  }
+  ```
+- The composer injects `uniform sampler2D inputBuffer;` into every effect shader, but you
+  don't need it here — the feedback reads the current frame in `update` from
+  `inputBuffer.texture` directly.
+- The plain three.js `ShaderMaterial` feedback quad can use classic GLSL1 (`varying`,
+  `texture2D`) — three auto-upgrades it for WebGL2.
+
+### Wiring it up
+In `src/Grain.jsx`'s `<EffectComposer>`, after `<Bloom>`:
+```jsx
+import { Afterimage } from './Afterimage'
+// …
+<Bloom … />
+<Afterimage damping={0.82} />   {/* lower = shorter trails; 1 = pass-through/off */}
+```
+`Afterimage` is `wrapEffect(AfterimageEffect)`, so props (`damping`, `blendFunction`,
+`opacity`) map straight onto the constructor. Order matters: place it after Bloom so the
+bloomed highlights are what trail.
+
+### Full source — `src/Afterimage.jsx`
+```jsx
+import * as THREE from 'three'
+import { Effect, BlendFunction } from 'postprocessing'
+import { wrapEffect } from '@react-three/postprocessing'
+
+const FEEDBACK_FRAGMENT_SHADER = /* glsl */ `
+  uniform sampler2D tNew;
+  uniform sampler2D tOld;
+  uniform float damping;
+  varying vec2 vUv;
+  void main() {
+    vec3 current = texture2D(tNew, vUv).rgb;
+    vec3 previous = texture2D(tOld, vUv).rgb;
+    gl_FragColor = vec4(max(current, previous * damping), 1.0);
+  }
+`
+
+const VERTEX_SHADER = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+  }
+`
+
+const FRAGMENT_SHADER = /* glsl */ `
+uniform sampler2D tOld;
+void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+  outputColor = texture2D(tOld, uv);
+}
+`
+
+class AfterimageEffect extends Effect {
+  constructor({ blendFunction = BlendFunction.NORMAL, opacity = 1, damping = 0.85 } = {}) {
+    super('AfterimageEffect', FRAGMENT_SHADER, {
+      blendFunction, opacity,
+      uniforms: new Map([
+        ['damping', new THREE.Uniform(damping)],
+        ['tOld', new THREE.Uniform(null)],
+      ]),
+    })
+    this._read = null
+    this._write = null
+    this._feedbackMaterial = new THREE.ShaderMaterial({
+      vertexShader: VERTEX_SHADER,
+      fragmentShader: FEEDBACK_FRAGMENT_SHADER,
+      uniforms: { tNew: { value: null }, tOld: { value: null }, damping: { value: damping } },
+      depthTest: false,
+      depthWrite: false,
+    })
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this._feedbackMaterial)
+    mesh.frustumCulled = false
+    this._scene = new THREE.Scene()
+    this._scene.add(mesh)
+    this._camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+  }
+
+  initialize(renderer, alpha, frameBufferType) {
+    super.initialize?.(renderer, alpha, frameBufferType)
+    const { width, height } = renderer.getSize(new THREE.Vector2())
+    this._read = new THREE.WebGLRenderTarget(width, height, { depthBuffer: false })
+    this._write = new THREE.WebGLRenderTarget(width, height, { depthBuffer: false })
+  }
+
+  setSize(width, height) {
+    if (this._read) this._read.setSize(width, height)
+    if (this._write) this._write.setSize(width, height)
+  }
+
+  update(renderer, inputBuffer) {
+    if (!this._read) return
+    this._feedbackMaterial.uniforms.tNew.value = inputBuffer.texture
+    this._feedbackMaterial.uniforms.tOld.value = this._read.texture
+    const previous = renderer.getRenderTarget()
+    renderer.setRenderTarget(this._write)
+    renderer.render(this._scene, this._camera)
+    renderer.setRenderTarget(previous)
+    const swap = this._read
+    this._read = this._write
+    this._write = swap
+    this.uniforms.get('tOld').value = this._read.texture
+  }
+
+  dispose() {
+    if (this._read) {
+      this._read.dispose()
+      this._write.dispose()
+      this._feedbackMaterial.dispose()
+    }
+  }
+}
+
+export const Afterimage = wrapEffect(AfterimageEffect)
+```
+
+### Tuning
+- `damping` (0–1): 0.82 gives ~1s trails; closer to 1 = longer persistence, toward 0.9+ the
+  whole screen starts to glow/smear on fast motion; below ~0.7 trails are barely visible.
+- Place before or after grain/other effects to choose whether the trails inherit them.
+- Source: `src/Afterimage.jsx`. Experiment branch: `experiment/afterimage` (created from
+  `random-statue`).
 
 ---
 
