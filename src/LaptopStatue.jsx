@@ -9,7 +9,7 @@ import Grain from './Grain'
    same orbiting, colorful, texture-projected spotlight as the other pieces.
    Replaces the hands on the random-statue branch. */
 
-const MODEL_URL = '/models/classic_laptop_2k/classic_laptop_2k.gltf'
+const MODEL_URL = '/models/classic_laptop/classic_laptop.gltf'
 
 const RADIUS = 3.5
 const ORBIT_SPEED = 0.35 // slower, more cinematic sweep

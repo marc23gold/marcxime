@@ -366,7 +366,7 @@ export const Afterimage = wrapEffect(AfterimageEffect)
 
 For models that come as `.gltf` + `.bin` + a `textures/` folder (or a single `.glb`),
 use drei's `useGLTF` instead of `PLYLoader`. The laptop scene is the reference
-example: `src/LaptopStatue.jsx` + `public/models/classic_laptop_2k/`.
+example: `src/LaptopStatue.jsx` + `public/models/classic_laptop/`.
 
 1. **Copy the model's folder into `public/models/` preserving its internal structure.**
    The loader resolves the `.bin` and `textures/*.jpg` refs relative to the `.gltf` path,
