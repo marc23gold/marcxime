@@ -1,26 +1,23 @@
-/* Right-edge menu.
+/* Left-edge menu.
    The strip is pointer-events: none so canvas orbit gestures keep working
    everywhere except on the interactive pieces themselves. z-index 2 keeps it
    below the riso grain overlay (3) and level with the title. */
 .side-menu {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
   height: 100%;
   width: min(280px, 80vw);
   z-index: 2;
   pointer-events: none;
 }
 
-/* Collapsed tab: compact square anchored to the right edge, vertically
-   centered. Sits above the panel (z-index 1) so it stays clickable as the
-   close handle once the menu is open. */
+/* Hamburger toggle: top-left corner, clear of the centered title. */
 .side-menu__toggle {
   position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-  z-index: 1;
+  top: 1.5rem;
+  left: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,16 +25,12 @@
   height: 42px;
   padding: 0;
   border: 1px solid rgba(233, 228, 219, 0.25);
-  border-right: none;
-  border-radius: 3px 0 0 3px;
+  border-left: none;
+  border-radius: 0 3px 3px 0;
   background: rgba(11, 11, 13, 0.6);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   color: #e9e4db;
-  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  font-size: 0.85rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: color 0.2s ease, border-color 0.2s ease;
   pointer-events: auto;
@@ -54,40 +47,123 @@
   outline-offset: 2px;
 }
 
-/* Panel: slides out from the right edge, vertically centered, capped at 60vh
-   with its own scroll. Text stays selectable. */
+/* Backdrop overlay: between canvas (z-index auto) and menu (z-index 2).
+   pointer-events: none when closed, auto when open so clicks close the menu. */
+.side-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.side-menu.is-open .side-menu__backdrop {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* Panel: below the toggle, slides in from the left, sized to content with
+   internal scroll. */
 .side-menu__panel {
   position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%) translateX(100%);
+  top: calc(1.5rem + 3.5rem);
+  left: 0;
+  transform: translateX(-100%);
   width: min(280px, 80vw);
-  max-height: 60vh;
+  max-height: calc(100vh - 6.5rem);
   overflow-y: auto;
-  padding: 1.2rem;
-  /* Keep the link clear of the tab handle on the right edge. */
-  padding-right: 2.625rem;
+  padding: 1.5rem;
   background: rgba(11, 11, 13, 0.92);
   border: 1px solid rgba(233, 228, 219, 0.18);
-  border-right: none;
+  border-left: none;
+  border-radius: 0 3px 3px 0;
   pointer-events: auto;
   user-select: auto;
   visibility: hidden;
-  transition: transform 0.35s ease, visibility 0s linear 0.35s;
+  opacity: 0;
+  transition: transform 0.35s ease, opacity 0.3s ease, visibility 0s linear 0.35s;
 }
 
 .side-menu.is-open .side-menu__panel {
-  transform: translateY(-50%) translateX(0);
+  transform: translateX(0);
   visibility: visible;
-  transition: transform 0.35s ease;
+  opacity: 1;
+  transition: transform 0.35s ease, opacity 0.3s ease;
 }
 
-/* The single link, styled like the old footer link. */
+.side-menu__panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(233, 228, 219, 0.12);
+}
+
+.side-menu__panel-title {
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffe9b0;
+}
+
+.side-menu__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(233, 228, 219, 0.2);
+  border-radius: 3px;
+  background: rgba(11, 11, 13, 0.4);
+  color: #e9e4db;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.side-menu__close:hover,
+.side-menu__close:active {
+  color: #ffe9b0;
+  border-color: #ffe9b0;
+}
+
+.side-menu__close:focus-visible {
+  outline: 1px solid rgba(255, 233, 176, 0.5);
+  outline-offset: 2px;
+}
+
+.side-menu__nav + .side-menu__nav {
+  margin-top: 1.5rem;
+}
+
+.side-menu__section-label {
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(233, 228, 219, 0.55);
+  margin: 0 0 0.6rem;
+}
+
+.side-menu__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.side-menu__list li + li {
+  margin-top: 0.35rem;
+}
+
 .side-menu__link {
   display: inline-block;
   color: #e9e4db;
   text-decoration: none;
-  border-bottom: 1px solid rgba(233, 228, 219, 0.35);
+  border-bottom: 1px solid rgba(233, 228, 219, 0.18);
   padding-bottom: 2px;
   font-size: 1.1rem;
   font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
@@ -108,13 +184,19 @@
 }
 
 @keyframes sideMenuShake {
-  0%, 100% { transform: translateY(-50%); }
-  25%      { transform: translateY(-50%) translateX(-4px); }
-  75%      { transform: translateY(-50%) translateX(4px); }
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(4px); }
+  75%      { transform: translateX(-4px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .side-menu__toggle {
     animation: none;
+  }
+  .side-menu__panel {
+    transition: none;
+  }
+  .side-menu__backdrop {
+    transition: none;
   }
 }

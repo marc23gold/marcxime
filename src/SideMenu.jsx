@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
 import './SideMenu.css'
 
-const GITHUB_URL = 'https://github.com/marc23gold'
+const NAV_LINKS = [
+  { label: 'Home', href: '#' },
+  { label: 'About', href: '#' },
+  { label: 'Work', href: '#' },
+  { label: 'Contact', href: '#' },
+]
+
+const SOCIAL_LINKS = [
+  { label: 'GitHub', href: 'https://github.com/marc23gold', external: true },
+]
 
 export default function SideMenu() {
   const [open, setOpen] = useState(false)
@@ -15,6 +24,8 @@ export default function SideMenu() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open])
 
+  const handleClose = () => setOpen(false)
+
   return (
     <div className={`side-menu${open ? ' is-open' : ''}`}>
       <button
@@ -22,26 +33,97 @@ export default function SideMenu() {
         className="side-menu__toggle"
         aria-expanded={open}
         aria-controls="side-menu-panel"
-        aria-label="Menu"
+        aria-label="Open menu"
         onClick={() => setOpen((v) => !v)}
       >
-        menu
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <line x1="4" y1="6" x2="20" y2="6" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="18" x2="20" y2="18" />
+        </svg>
       </button>
+
+      <button
+        type="button"
+        className="side-menu__backdrop"
+        aria-hidden={!open}
+        onClick={handleClose}
+      />
+
       <div
         id="side-menu-panel"
         className="side-menu__panel"
         role="region"
         aria-label="Menu links"
       >
-        <a
-          className="side-menu__link"
-          href={GITHUB_URL}
-          target="_blank"
-          rel="noreferrer"
-          onClick={() => setOpen(false)}
-        >
-          github.com/marc23gold
-        </a>
+        <div className="side-menu__panel-header">
+          <span className="side-menu__panel-title">Menu</span>
+          <button
+            type="button"
+            className="side-menu__close"
+            aria-label="Close menu"
+            onClick={handleClose}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="6" y1="18" x2="18" y2="6" />
+            </svg>
+          </button>
+        </div>
+
+        <nav className="side-menu__nav" aria-label="Primary">
+          <p className="side-menu__section-label">Navigation</p>
+          <ul className="side-menu__list">
+            {NAV_LINKS.map(({ label, href }) => (
+              <li key={label}>
+                <a
+                  className="side-menu__link"
+                  href={href}
+                  onClick={handleClose}
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav className="side-menu__nav" aria-label="Social">
+          <p className="side-menu__section-label">Social</p>
+          <ul className="side-menu__list">
+            {SOCIAL_LINKS.map(({ label, href, external }) => (
+              <li key={label}>
+                <a
+                  className="side-menu__link"
+                  href={href}
+                  target={external ? '_blank' : undefined}
+                  rel={external ? 'noreferrer' : undefined}
+                  onClick={handleClose}
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </div>
   )
