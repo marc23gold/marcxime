@@ -1,5 +1,6 @@
 import { EffectComposer, Noise, Vignette, DotScreen, Bloom } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
+import { Afterimage } from './Afterimage'
 
 /* Cinematic bright, warm bloom finish: a soft bloom lifts the highlights into a
    gentle glow, a whisper of halftone dot-screen adds print texture, and fine warm
@@ -16,6 +17,11 @@ export default function Grain() {
         mipmapBlur
         radius={0.85}
       />
+      {/* Afterimage trail — moving highlights leave soft, decaying trails.
+          EXPERIMENT on branch experiment/afterimage. damping < 1 = shorter trails.
+          1 - passes it through unchanged (off). */}
+      {/* <Afterimage damping={0.82} /> */}
+      <Afterimage damping={0.82} />
       {/* Grainy film grain — fine, warm, low-opacity but clearly visible,
           no scanlines. This is the "grainy film" hero. */}
       <Noise premultiply opacity={0.22} />
