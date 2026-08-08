@@ -62,13 +62,24 @@ jobs:
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
           tags: tag:ci
 
+      - name: Diagnose tailnet connectivity
+        run: |
+          echo "=== runner's view of the tailnet ==="
+          tailscale status
+          echo
+          echo "=== tailscale ping to VPS ==="
+          tailscale ping -c 4 "${{ secrets.VPS_HOST }}" || true
+          echo
+          echo "=== TCP port 22 check ==="
+          timeout 10 bash -c "echo > /dev/tcp/${{ secrets.VPS_HOST }}/22" && echo "PORT 22 OPEN" || echo "PORT 22 UNREACHABLE"
+
       - name: Deploy static files to VPS
         run: |
           eval "$(ssh-agent -s)"
           echo "${{ secrets.VPS_SSH_KEY }}" | ssh-add -
 
           SSH_TARGET="${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
-          SSH_CMD="ssh -p ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=accept-new"
+          SSH_CMD="ssh -p ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15"
           WEBROOT="${{ secrets.VPS_WEBROOT }}"
 
           rsync -avz --delete -e "$SSH_CMD" dist/ "$SSH_TARGET":"$WEBROOT"/
