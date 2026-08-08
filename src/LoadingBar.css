@@ -1,0 +1,41 @@
+.loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #e9e4db, #ffe9b0);
+  box-shadow: 0 0 12px rgba(255, 233, 176, 0.45);
+  z-index: 3;
+  pointer-events: none;
+  opacity: 1;
+  transition: width 0.3s ease, opacity 0.5s ease;
+}
+
+/* Pre-start sliver: subtle pulse while waiting for the model fetch. */
+.loading-bar--waiting {
+  animation: loading-bar-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes loading-bar-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Fully loaded: fade out, then stop showing content. */
+.loading-bar--done {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0s 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-bar--waiting {
+    animation: none;
+  }
+}

@@ -1,0 +1,120 @@
+/* Right-edge menu.
+   The strip is pointer-events: none so canvas orbit gestures keep working
+   everywhere except on the interactive pieces themselves. z-index 2 keeps it
+   below the riso grain overlay (3) and level with the title. */
+.side-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(280px, 80vw);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Collapsed tab: compact square anchored to the right edge, vertically
+   centered. Sits above the panel (z-index 1) so it stays clickable as the
+   close handle once the menu is open. */
+.side-menu__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgba(233, 228, 219, 0.25);
+  border-right: none;
+  border-radius: 3px 0 0 3px;
+  background: rgba(11, 11, 13, 0.6);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  color: #e9e4db;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  pointer-events: auto;
+}
+
+.side-menu__toggle:hover,
+.side-menu__toggle:active {
+  color: #ffe9b0;
+  border-color: #ffe9b0;
+}
+
+.side-menu__toggle:focus-visible {
+  outline: 1px solid rgba(255, 233, 176, 0.5);
+  outline-offset: 2px;
+}
+
+/* Panel: slides out from the right edge, vertically centered, capped at 60vh
+   with its own scroll. Text stays selectable. */
+.side-menu__panel {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%) translateX(100%);
+  width: min(280px, 80vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 1.2rem;
+  /* Keep the link clear of the tab handle on the right edge. */
+  padding-right: 2.625rem;
+  background: rgba(11, 11, 13, 0.92);
+  border: 1px solid rgba(233, 228, 219, 0.18);
+  border-right: none;
+  pointer-events: auto;
+  user-select: auto;
+  visibility: hidden;
+  transition: transform 0.35s ease, visibility 0s linear 0.35s;
+}
+
+.side-menu.is-open .side-menu__panel {
+  transform: translateY(-50%) translateX(0);
+  visibility: visible;
+  transition: transform 0.35s ease;
+}
+
+/* The single link, styled like the old footer link. */
+.side-menu__link {
+  display: inline-block;
+  color: #e9e4db;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(233, 228, 219, 0.35);
+  padding-bottom: 2px;
+  font-size: 1.1rem;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.14em;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.side-menu__link:hover {
+  color: #ffe9b0;
+  border-color: #ffe9b0;
+}
+
+/* Mobile: shake the collapsed tab a moment after mount so it gets noticed. */
+@media (pointer: coarse) {
+  .side-menu:not(.is-open) .side-menu__toggle {
+    animation: sideMenuShake 0.45s ease 0.8s 3;
+  }
+}
+
+@keyframes sideMenuShake {
+  0%, 100% { transform: translateY(-50%); }
+  25%      { transform: translateY(-50%) translateX(-4px); }
+  75%      { transform: translateY(-50%) translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-menu__toggle {
+    animation: none;
+  }
+}

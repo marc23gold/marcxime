@@ -37,10 +37,6 @@ body {
   left: 0;
   right: 0;
   text-align: center;
-  /* Decorative overlay: let pointer events fall through to the canvas so a
-     drag starting on the title rotates the statue instead of selecting text. */
-  pointer-events: none;
-  user-select: none;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
   z-index: 2;
 }
@@ -65,34 +61,6 @@ body {
   opacity: 0.72;
   color: #f0e9d8;
   text-shadow: 0 1px 20px rgba(0, 0, 0, 0.55);
-}
-
-.links {
-  position: absolute;
-  bottom: 2rem;
-  left: 0;
-  right: 0;
-  text-align: center;
-  /* Only the anchor is interactive; the rest of the strip passes through. */
-  pointer-events: none;
-  z-index: 2;
-}
-
-.links a {
-  pointer-events: auto;
-  color: #e9e4db;
-  text-decoration: none;
-  border-bottom: 1px solid rgba(233, 228, 219, 0.35);
-  padding-bottom: 2px;
-  font-size: 1.1rem;
-  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  letter-spacing: 0.14em;
-  transition: color 0.2s ease, border-color 0.2s ease;
-}
-
-.links a:hover {
-  color: #ffe9b0;
-  border-color: #ffe9b0;
 }
 
 /* ---- Risograph grain "light" effect ----

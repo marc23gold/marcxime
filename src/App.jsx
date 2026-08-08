@@ -1,5 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { isMobile } from './mobile'
+import SideMenu from './SideMenu'
+import LoadingBar from './LoadingBar'
 import './App.css'
 
 /* Each scene is a self-contained full-screen Canvas. Code-split every scene
@@ -15,8 +17,6 @@ const SCENES = [
   { Comp: MarbleSpotlight, weight: isMobile ? 2 : 1 }, // Lucy
   { Comp: LaptopStatue, weight: isMobile ? 1 : 1 },
 ]
-
-const GITHUB_URL = 'https://github.com/marc23gold'
 
 function pickScene(list) {
   const total = list.reduce((sum, s) => sum + s.weight, 0)
@@ -36,16 +36,13 @@ export default function App() {
       <Suspense fallback={null}>
         <Scene />
       </Suspense>
+      <LoadingBar />
       <div className="riso" aria-hidden="true" />
+      <SideMenu />
       <header className="title">
         <h1>marcxime</h1>
         <p>a work in progress</p>
       </header>
-      <footer className="links">
-        <a href={GITHUB_URL} target="_blank" rel="noreferrer">
-          github.com/marc23gold
-        </a>
-      </footer>
     </div>
   )
 }
