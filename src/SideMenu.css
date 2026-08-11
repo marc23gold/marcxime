@@ -1,26 +1,22 @@
-/* Left-side collapsible menu, built as a standalone overlay.
-   The wrapper covers the viewport but is click-transparent (pointer-events:
-   none); every interactive piece re-enables pointer-events explicitly.
-   z-index 4 keeps the whole menu above title (2), loading bar and grain (3),
-   so nothing can paint over or swallow clicks on the toggle — the earlier bug
-   was the centered title's invisible full-width box sitting on top of it. */
-.side-menu {
-  position: fixed;
-  inset: 0;
-  z-index: 4;
-  pointer-events: none;
-}
+/* Left off-canvas drawer: toggle, backdrop and panel are three fixed siblings
+   with no wrapper — each carries z-index var(--z-menu) from the single
+   stacking plan declared in App.css (:root). No pointer-events gymnastics:
+   elements receive events by default; the backdrop stays visibility:hidden
+   while closed (untabbable and hit-test immune). When open the panel covers
+   the toggle, so the close button in the panel header takes over as the
+   in-panel affordance. */
 
 /* Hamburger toggle: fixed at the top-left corner, clear of the centered title. */
 .side-menu__toggle {
   position: fixed;
-  top: 1.5rem;
+  z-index: var(--z-menu);
+  top: var(--menu-toggle-offset);
   left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: var(--menu-toggle-size);
+  height: var(--menu-toggle-size);
   padding: 0;
   border: 1px solid rgba(233, 228, 219, 0.25);
   border-left: none;
@@ -30,14 +26,14 @@
   backdrop-filter: blur(4px);
   color: #e9e4db;
   cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease;
-  pointer-events: auto;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .side-menu__toggle:hover,
 .side-menu__toggle:active {
   color: #ffe9b0;
   border-color: #ffe9b0;
+  background: rgba(11, 11, 13, 0.75);
 }
 
 .side-menu__toggle:focus-visible {
@@ -45,60 +41,74 @@
   outline-offset: 2px;
 }
 
-/* Backdrop: dims the scene behind the open panel. Click-transparent and
-   invisible while closed, clickable+visible while open. */
+/* Backdrop: dims (and on wide screens softly blurs) the scene behind the open
+   drawer. A full-viewport button that only exists to swallow the close click,
+   so while closed it is visibility:hidden — untabbable and hit-test immune. */
 .side-menu__backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  pointer-events: none;
+  z-index: var(--z-menu);
+  background: rgba(0, 0, 0, 0.5);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 
-.side-menu.is-open .side-menu__backdrop {
-  pointer-events: auto;
+.side-menu__backdrop.is-open {
   opacity: 1;
   visibility: visible;
   transition: opacity 0.3s ease;
 }
 
-/* Panel: slides in from the left edge, hangs below the toggle, scrolls
-   internally if the content is taller than the viewport. */
-.side-menu__panel {
-  position: fixed;
-  top: calc(1.5rem + 3.5rem);
-  left: 0;
-  width: min(280px, 80vw);
-  max-height: calc(100vh - 6.5rem);
-  overflow-y: auto;
-  padding: 1.5rem;
-  background: rgba(11, 11, 13, 0.92);
-  border: 1px solid rgba(233, 228, 219, 0.18);
-  border-left: none;
-  border-radius: 0 3px 3px 0;
-  user-select: auto;
-  pointer-events: auto;
-  transform: translateX(-100%);
-  visibility: hidden;
-  opacity: 0;
-  transition: transform 0.35s ease, opacity 0.3s ease, visibility 0s linear 0.35s;
+@media (min-width: 768px) {
+  .side-menu__backdrop {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
 }
 
-.side-menu.is-open .side-menu__panel {
+/* Panel: full-height off-canvas drawer glued to the left edge. Glued edges are
+   the point — no floating box, no rounded corners, no gaps — so nothing reads
+   as a bordered card. The only divider is the hairline on the open (right)
+   edge. On narrow screens the drawer becomes a full-bleed sheet with large
+   type and no divider at all. Closed: hidden via visibility (out of tab
+   order) while translateX(-100%) parks it offscreen. Geometry derives from
+   the --menu-* tokens in App.css and safe-area insets for notched phones. */
+.side-menu__panel {
+  position: fixed;
+  z-index: var(--z-menu);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(340px, 100vw);
+  display: flex;
+  flex-direction: column;
+  padding:
+    max(1.75rem, env(safe-area-inset-top))
+    max(1.75rem, env(safe-area-inset-right))
+    max(1.75rem, env(safe-area-inset-bottom))
+    max(1.75rem, env(safe-area-inset-left));
+  overflow-y: auto;
+  background: rgba(11, 11, 13, 0.96);
+  border-right: 1px solid rgba(233, 228, 219, 0.12);
+  user-select: auto;
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.35s;
+}
+
+.side-menu__panel.is-open {
   transform: translateX(0);
   visibility: visible;
-  opacity: 1;
-  transition: transform 0.35s ease, opacity 0.3s ease;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .side-menu__panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid rgba(233, 228, 219, 0.12);
 }
 
@@ -114,8 +124,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border: 1px solid rgba(233, 228, 219, 0.2);
   border-radius: 3px;
@@ -137,7 +147,7 @@
 }
 
 .side-menu__nav + .side-menu__nav {
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 }
 
 .side-menu__section-label {
@@ -146,7 +156,7 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(233, 228, 219, 0.55);
-  margin: 0 0 0.6rem;
+  margin: 0 0 0.75rem;
 }
 
 .side-menu__list {
@@ -155,53 +165,104 @@
   padding: 0;
 }
 
-.side-menu__list li + li {
-  margin-top: 0.35rem;
-}
-
+/* Full-row links with hairline dividers: generous hit area (>= 44px), hover
+   nudges the row right and warms it to the accent. Entrance: subtle rise
+   + fade, staggered slightly after the drawer starts moving. */
 .side-menu__link {
-  display: inline-block;
+  display: block;
+  padding: 0.95rem 0.25rem;
   color: #e9e4db;
   text-decoration: none;
-  border-bottom: 1px solid rgba(233, 228, 219, 0.18);
-  padding-bottom: 2px;
-  font-size: 1.1rem;
   font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  letter-spacing: 0.14em;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  font-size: 1.25rem;
+  letter-spacing: 0.16em;
+  border-bottom: 1px solid rgba(233, 228, 219, 0.08);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    color 0.2s ease,
+    padding-left 0.25s ease,
+    border-color 0.2s ease;
 }
 
-.side-menu__link:hover {
+.side-menu__panel.is-open .side-menu__link {
+  opacity: 1;
+  transform: none;
+  /* stagger only the entrance; hover transitions stay instant */
+  transition-delay: 0.08s, 0.08s, 0s, 0s, 0s;
+}
+
+.side-menu__link:hover,
+.side-menu__link:active {
   color: #ffe9b0;
-  border-color: #ffe9b0;
+  padding-left: 0.75rem;
+  border-color: rgba(255, 233, 176, 0.45);
 }
 
-/* Mobile: shake the collapsed tab a moment after mount so it gets noticed. */
-@media (pointer: coarse) {
-  .side-menu:not(.is-open) .side-menu__toggle {
-    animation: sideMenuShake 0.45s ease 0.8s 3;
-  }
+.side-menu__link:focus-visible {
+  outline: 1px solid rgba(255, 233, 176, 0.5);
+  outline-offset: 2px;
 }
 
-@keyframes sideMenuShake {
-  0%,
-  100% {
-    transform: translateX(0);
+/* Footer microcopy anchors the drawer bottom so a sparse nav never reads
+   as unfinished. */
+.side-menu__footer {
+  margin-top: auto;
+  padding-top: 2.5rem;
+}
+
+.side-menu__footer p {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(233, 228, 219, 0.42);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.side-menu__panel.is-open .side-menu__footer p {
+  opacity: 1;
+  transition-delay: 0.16s;
+}
+
+/* Narrow screens: full-bleed sheet — no divider to draw an "outline", larger
+   type and targets. width: min(340px, 100vw) already makes sub-340px
+   viewports full-bleed; this arm tunes type and spacing from 480px down. */
+@media (max-width: 480px) {
+  .side-menu__panel {
+    width: 100vw;
+    border-right: none;
+    padding:
+      max(2rem, env(safe-area-inset-top))
+      max(1.5rem, env(safe-area-inset-right))
+      max(2rem, env(safe-area-inset-bottom))
+      max(1.5rem, env(safe-area-inset-left));
   }
-  25% {
-    transform: translateX(4px);
+
+  .side-menu__section-label {
+    margin-bottom: 0.5rem;
   }
-  75% {
-    transform: translateX(-4px);
+
+  .side-menu__link {
+    font-size: 1.45rem;
+    padding: 1.05rem 0.25rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .side-menu__toggle {
-    animation: none;
-  }
   .side-menu__panel,
-  .side-menu__backdrop {
+  .side-menu__backdrop,
+  .side-menu__link,
+  .side-menu__footer p {
     transition: none;
+  }
+
+  .side-menu__link,
+  .side-menu__footer p {
+    opacity: 1;
+    transform: none;
   }
 }

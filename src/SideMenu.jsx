@@ -37,6 +37,7 @@ function MenuIcon({ kind }) {
 export default function SideMenu() {
   const [open, setOpen] = useState(false)
   const toggleRef = useRef(null)
+  const closeRef = useRef(null)
 
   useEffect(() => {
     if (!open) return
@@ -47,6 +48,8 @@ export default function SideMenu() {
       }
     }
     window.addEventListener('keydown', onKeyDown)
+    // The open panel covers the toggle; move focus into the dialog instead.
+    closeRef.current?.focus()
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open])
 
@@ -56,7 +59,7 @@ export default function SideMenu() {
   }
 
   return (
-    <div className={`side-menu${open ? ' is-open' : ''}`}>
+    <>
       <button
         ref={toggleRef}
         type="button"
@@ -71,7 +74,7 @@ export default function SideMenu() {
 
       <button
         type="button"
-        className="side-menu__backdrop"
+        className={`side-menu__backdrop${open ? ' is-open' : ''}`}
         aria-label="Close menu"
         tabIndex={open ? 0 : -1}
         onClick={handleClose}
@@ -79,13 +82,15 @@ export default function SideMenu() {
 
       <div
         id="side-menu-panel"
-        className="side-menu__panel"
-        role="region"
-        aria-label="Menu links"
+        className={`side-menu__panel${open ? ' is-open' : ''}`}
+        role="dialog"
+        aria-modal={open}
+        aria-label="Menu"
       >
         <div className="side-menu__panel-header">
           <span className="side-menu__panel-title">Menu</span>
           <button
+            ref={closeRef}
             type="button"
             className="side-menu__close"
             aria-label="Close menu"
@@ -113,7 +118,11 @@ export default function SideMenu() {
             ))}
           </ul>
         </nav>
+
+        <footer className="side-menu__footer">
+          <p>marcxime — a work in progress</p>
+        </footer>
       </div>
-    </div>
+    </>
   )
 }

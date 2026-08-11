@@ -2,6 +2,18 @@
   box-sizing: border-box;
 }
 
+/* Single stacking plan + menu geometry tokens — the one source of truth for
+   layers. Semantics: 2 title, 3 chrome (loading bar + riso grain), 4 menu
+   (toggle/panel/backdrop); the 3D canvas sits at 0. Never add a bare z-index. */
+:root {
+  --z-title: 2;
+  --z-chrome: 3;
+  --z-menu: 4;
+
+  --menu-toggle-size: 42px;
+  --menu-toggle-offset: 1.5rem; /* top-edge offset of the toggle */
+}
+
 html,
 body,
 #root {
@@ -38,10 +50,9 @@ body {
   right: 0;
   text-align: center;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
-  z-index: 2;
-  /* The full-width box must not swallow clicks meant for the menu toggle
-     or panel below it (same z-index, later DOM order). Text itself is
-     re-enabled below, so selection still works. */
+  z-index: var(--z-title);
+  /* Click-transparent shell: canvas orbit drags must pass through the empty
+     band around the text; only the text itself accepts events (selection). */
   pointer-events: none;
 }
 
@@ -78,7 +89,7 @@ body {
 .riso {
   position: fixed;
   inset: 0;
-  z-index: 3;
+  z-index: var(--z-chrome);
   pointer-events: none;
   mix-blend-mode: soft-light;
   opacity: 0.6;
