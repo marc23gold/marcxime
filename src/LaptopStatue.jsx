@@ -2,7 +2,7 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
+import { DPR, SHADOW_MAP, DUST_COUNT, isMobile } from './mobile'
 import Grain from './Grain'
 
 /* A classic laptop (glTF, own PBR materials) seated on a plinth and lit by the
@@ -15,24 +15,169 @@ const RADIUS = 3.5
 const ORBIT_SPEED = 0.35 // slower, more cinematic sweep
 const HEIGHT = 5
 
+/* Screen power-on: the glTF screen material starts near-black (off). The first
+   time the camera looks at the screen front, it boots with a warm flicker and
+   settles into a dim, breathing glow that fits the film faint-light look. */
+const SCREEN_MAT = 'classic_laptop_screen'
+const SCREEN_COLOR = new THREE.Color('#ffe9b0')
+const _p = new THREE.Vector3()
+const _d = new THREE.Vector3()
+const _f = new THREE.Vector3()
+
+const ease = (x) => x * x * (3 - 2 * x)
+
+/* The screen boots by drawing a warm, analog-style boot animation onto a canvas
+   texture that feeds the screen material's emissiveMap — the display shows
+   content as it powers on, not a flat filled panel. RGB encodes brightness
+   (alpha is ignored by emissiveMap), so every layer writes scaled rgb(). */
+const SCREEN_W = 256
+const SCREEN_H = 160
+
+const warm = (b) => `rgb(${Math.round(255 * b)},${Math.round(214 * b)},${Math.round(150 * b)})`
+
+function makeScreen() {
+  const canvas = document.createElement('canvas')
+  canvas.width = SCREEN_W
+  canvas.height = SCREEN_H
+  const ctx = canvas.getContext('2d')
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.minFilter = THREE.LinearFilter
+  return { ctx, tex }
+}
+
+/* The screen mesh's original UVs point at the shared texture atlas (or are
+   missing), so a dedicated canvas map would sample a stray region. Re-map the
+   screen geometry to a full 0-1 quad along its two widest local axes so the
+   boot canvas fills the whole display. */
+function fitScreenUVs(geo) {
+  if (!geo) return
+  geo.computeBoundingBox()
+  const bb = geo.boundingBox
+  const pos = geo.attributes.position
+  if (!pos) return
+  const ext = [bb.max.x - bb.min.x, bb.max.y - bb.min.y, bb.max.z - bb.min.z]
+  const [ax, ay] = [0, 1, 2].sort((p, q) => ext[q] - ext[p]).slice(0, 2)
+  const uv = new Float32Array(pos.count * 2)
+  const minA = bb.min.getComponent(ax)
+  const minB = bb.min.getComponent(ay)
+  const sA = ext[ax] || 1
+  const sB = ext[ay] || 1
+  for (let i = 0; i < pos.count; i++) {
+    uv[i * 2] = (pos.getComponent(i, ax) - minA) / sA
+    uv[i * 2 + 1] = (pos.getComponent(i, ay) - minB) / sB
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
+}
+
+function drawScreen(ctx, t) {
+  const W = SCREEN_W, H = SCREEN_H
+  ctx.clearRect(0, 0, W, H)
+
+  // ignition: a warm core flashes, expands, then fades into the glass
+  const core = ease(Math.min(1, Math.max(0, (t - 0.05) / 0.5)))
+  if (core > 0) {
+    const b = 0.85 * core * Math.max(0, 1 - Math.max(0, t - 0.55) / 0.4)
+    const r = 6 + core * H * 0.55
+    const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, r)
+    g.addColorStop(0, `rgb(${Math.round(255 * b)},${Math.round(235 * b)},${Math.round(180 * b)})`)
+    g.addColorStop(1, 'rgb(0,0,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, W, H)
+  }
+
+  // the screen fills to a warm dark glass
+  const fill = ease(Math.min(1, Math.max(0, (t - 0.45) / 0.7)))
+  if (fill > 0) {
+    const b = 0.5 * fill
+    ctx.fillStyle = `rgb(${Math.round(50 * b)},${Math.round(34 * b)},${Math.round(16 * b)})`
+    ctx.fillRect(0, 0, W, H)
+  }
+
+  // scanlines shimmer faintly once alive
+  const alive = ease(Math.min(1, Math.max(0, (t - 0.2) / 2.2)))
+  if (alive > 0) {
+    for (let y = 2; y < H; y += 6) {
+      const b = (0.05 + 0.09 * Math.abs(Math.sin(t * 30 + y))) * alive
+      ctx.fillStyle = warm(b)
+      ctx.fillRect(0, y, W, 1)
+    }
+  }
+
+  // a thin progress bar grows across, then lingers
+  const p = ease(Math.min(1, Math.max(0, (t - 0.9) / 1.1)))
+  if (p > 0) {
+    const bx = W * 0.16, bw = W * 0.68, by = H * 0.78
+    ctx.fillStyle = warm(0.28)
+    ctx.fillRect(bx, by, bw, 2)
+    ctx.fillStyle = warm(1)
+    ctx.fillRect(bx, by, bw * p, 2)
+    ctx.fillStyle = 'rgb(255,232,180)'
+    ctx.fillRect(bx + bw * p - 1, by - 1, 2, 4)
+  }
+
+  // idle: a dim warm breathing glow keeps the on-screen alive
+  const idle = Math.max(0.04, 0.1 + 0.03 * Math.sin(t * 2.3) + 0.02 * Math.sin(t * 5.4))
+  if (t > 0.6) {
+    const g = ctx.createRadialGradient(W / 2, H / 2, 3, W / 2, H / 2, H * 0.72)
+    g.addColorStop(0, `rgb(${Math.round(255 * idle)},${Math.round(215 * idle)},${Math.round(150 * idle)})`)
+    g.addColorStop(1, 'rgb(0,0,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, W, H)
+  }
+}
+
 function Statue() {
   const { scene } = useGLTF(MODEL_URL)
+  const screen = useRef(null)
+  const draw = useRef(null)
+  const poweredOn = useRef(false)
+  const bootT = useRef(0)
 
   useEffect(() => {
     scene.traverse((o) => {
-      if (o.isMesh) {
-        o.castShadow = true
-        o.receiveShadow = true
+      if (!o.isMesh) return
+      o.castShadow = true
+      o.receiveShadow = true
+      if (o.material?.name === SCREEN_MAT) {
+        screen.current = o
+        draw.current = makeScreen()
+        const mat = o.material.clone()
+        mat.emissive.copy(SCREEN_COLOR)
+        mat.emissiveMap = draw.current.tex
+        mat.emissiveIntensity = 0.55
+        o.material = mat
+        o.geometry = o.geometry.clone()
+        fitScreenUVs(o.geometry)
       }
     })
   }, [scene])
+
+  useFrame((state, delta) => {
+    const mesh = screen.current
+    if (!mesh) return
+
+    // Armed once the scene has settled; fires on the first real look at the front.
+    if (!poweredOn.current) {
+      if (state.clock.elapsedTime < 2) return
+      mesh.getWorldPosition(_p)
+      _d.subVectors(state.camera.position, _p).normalize()
+      mesh.getWorldDirection(_f)
+      if (_d.dot(_f) < 0.5) return
+      poweredOn.current = true
+    }
+
+    bootT.current += delta
+    drawScreen(draw.current.ctx, bootT.current)
+    draw.current.tex.needsUpdate = true
+  })
 
   return (
     <group>
       {/* wide plinth (floor top is y=0) */}
       <mesh position={[0, -0.5, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[1.3, 1.5, 1.0, 64]} />
-        <meshStandardMaterial color="#d9d2c6" roughness={0.4} metalness={0.06} />
+        <meshStandardMaterial color="#c6bdb0" roughness={0.45} metalness={0.06} />
       </mesh>
       {/* laptop rested on the plinth (model base ~y 0) */}
       <primitive object={scene} scale={3} position={[0, 0.04, 0]} rotation={[0, -0.5, 0]} />
@@ -160,7 +305,7 @@ function Floor() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
       <circleGeometry args={[8, 64]} />
-      <meshLambertMaterial color="#bcbcbc" />
+      <meshLambertMaterial color="#a8a29b" />
     </mesh>
   )
 }
@@ -170,12 +315,14 @@ export default function LaptopStatue() {
     <Canvas
       shadows
       gl={{ toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1 }}
-      camera={{ position: [6.5, 3, 2.5], fov: 40 }}
+      camera={{ position: isMobile ? [6.3, 2.5, 4.1] : [5.1, 2.05, 3.3], fov: isMobile ? 42 : 38 }}
       dpr={DPR}
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={['#0b0b0d']} />
       <hemisphereLight args={['#ffffff', '#8d8d8d', 0.25]} />
+      {/* Low warm fill from the viewer's side so the case and keys read. */}
+      <directionalLight position={[4.5, 3.2, 5.5]} intensity={0.6} color="#ffe9b0" />
 
       <Suspense fallback={null}>
         <Statue />
@@ -186,7 +333,7 @@ export default function LaptopStatue() {
       <Grain />
 
       <OrbitControls
-        target={[0, 0.8, 0]}
+        target={[0, 0.95, 0]}
         enablePan={false}
         minDistance={2}
         maxDistance={10}

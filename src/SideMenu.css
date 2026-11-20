@@ -1,267 +1,429 @@
-/* Left off-canvas drawer: toggle, backdrop and panel are three fixed siblings
-   with no wrapper — each carries z-index var(--z-menu) from the single
-   stacking plan declared in App.css (:root). No pointer-events gymnastics:
-   elements receive events by default; the backdrop stays visibility:hidden
-   while closed (untabbable and hit-test immune). When open the panel covers
-   the toggle, so the close button in the panel header takes over as the
-   in-panel affordance. */
+/* The index: a quiet text control at the top right, and a left drawer built as
+   a title-sequence — work, studio, contact, colophon — with the type doing the
+   work and no boxes, borders or card chrome. */
 
-/* Hamburger toggle: fixed at the top-left corner, clear of the centered title. */
-.side-menu__toggle {
+.index-toggle {
   position: fixed;
   z-index: var(--z-menu);
-  top: var(--menu-toggle-offset);
-  left: 0;
-  display: flex;
+  top: clamp(16px, 2.8vh, 30px);
+  right: var(--gutter);
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: var(--menu-toggle-size);
-  height: var(--menu-toggle-size);
-  padding: 0;
-  border: 1px solid rgba(233, 228, 219, 0.25);
-  border-left: none;
-  border-radius: 0 3px 3px 0;
-  background: rgba(11, 11, 13, 0.6);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  color: #e9e4db;
+  gap: 0.7rem;
+  padding: 0.55rem 0.1rem;
+  border: 0;
+  background: none;
+  color: var(--ivory);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.08rem;
+  letter-spacing: 0.03em;
   cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition: color 0.3s var(--ease-out);
 }
 
-.side-menu__toggle:hover,
-.side-menu__toggle:active {
-  color: #ffe9b0;
-  border-color: #ffe9b0;
-  background: rgba(11, 11, 13, 0.75);
+.index-toggle:hover,
+.index-toggle:active {
+  color: var(--amber);
 }
 
-.side-menu__toggle:focus-visible {
-  outline: 1px solid rgba(255, 233, 176, 0.5);
-  outline-offset: 2px;
+.index-toggle:focus-visible {
+  outline: 1px solid rgba(255, 233, 176, 0.6);
+  outline-offset: 6px;
 }
 
-/* Backdrop: dims (and on wide screens softly blurs) the scene behind the open
+/* Two hairlines that fold into a cross when the drawer is open. */
+.index-toggle__glyph {
+  position: relative;
+  width: 16px;
+  height: 9px;
+}
+
+.index-toggle__glyph i {
+  position: absolute;
+  left: 0;
+  width: 16px;
+  height: 1px;
+  background: currentColor;
+  transition:
+    top 0.4s var(--ease-out),
+    transform 0.4s var(--ease-out);
+}
+
+.index-toggle__glyph i:first-child {
+  top: 0;
+}
+
+.index-toggle__glyph i:last-child {
+  top: 8px;
+}
+
+.index-toggle[aria-expanded='true'] .index-toggle__glyph i:first-child {
+  top: 4px;
+  transform: rotate(45deg);
+}
+
+.index-toggle[aria-expanded='true'] .index-toggle__glyph i:last-child {
+  top: 4px;
+  transform: rotate(-45deg);
+}
+
+/* Backdrop: dims (and on wide screens softly blurs) the still behind the open
    drawer. A full-viewport button that only exists to swallow the close click,
    so while closed it is visibility:hidden — untabbable and hit-test immune. */
-.side-menu__backdrop {
+.index-backdrop {
   position: fixed;
   inset: 0;
   z-index: var(--z-menu);
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+  transition:
+    opacity 0.4s var(--ease-out),
+    visibility 0s linear 0.4s;
 }
 
-.side-menu__backdrop.is-open {
+.index-backdrop.is-open {
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.4s var(--ease-out);
 }
 
 @media (min-width: 768px) {
-  .side-menu__backdrop {
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
+  .index-backdrop {
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
   }
 }
 
-/* Panel: full-height off-canvas drawer glued to the left edge. Glued edges are
-   the point — no floating box, no rounded corners, no gaps — so nothing reads
-   as a bordered card. The only divider is the hairline on the open (right)
-   edge. On narrow screens the drawer becomes a full-bleed sheet with large
-   type and no divider at all. Closed: hidden via visibility (out of tab
-   order) while translateX(-100%) parks it offscreen. Geometry derives from
-   the --menu-* tokens in App.css and safe-area insets for notched phones. */
-.side-menu__panel {
+/* Panel: full-height drawer glued to the left edge. Separation comes from a
+   tone step and a shadow, not a border. Closed: parked offscreen and hidden
+   from the tab order; open: transform on the expo-out curve. */
+.index-panel {
   position: fixed;
   z-index: var(--z-menu);
   top: 0;
   bottom: 0;
   left: 0;
-  width: min(340px, 100vw);
+  width: min(430px, 100vw);
   display: flex;
   flex-direction: column;
+  gap: clamp(1.8rem, 3.2vh, 2.5rem);
   padding:
-    max(1.75rem, env(safe-area-inset-top))
-    max(1.75rem, env(safe-area-inset-right))
-    max(1.75rem, env(safe-area-inset-bottom))
-    max(1.75rem, env(safe-area-inset-left));
+    max(1.6rem, env(safe-area-inset-top))
+    clamp(1.4rem, 3.4vw, 2.3rem)
+    max(1.4rem, env(safe-area-inset-bottom));
   overflow-y: auto;
-  background: rgba(11, 11, 13, 0.96);
-  border-right: 1px solid rgba(233, 228, 219, 0.12);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(233, 228, 219, 0.18) transparent;
+  background: #0c0c0f;
+  box-shadow: 1px 0 80px rgba(0, 0, 0, 0.65);
   user-select: auto;
   transform: translateX(-100%);
   visibility: hidden;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.35s;
+  transition:
+    transform 0.5s var(--ease-out),
+    visibility 0s linear 0.5s;
 }
 
-.side-menu__panel.is-open {
-  transform: translateX(0);
+.index-panel.is-open {
+  transform: none;
   visibility: visible;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.5s var(--ease-out);
 }
 
-.side-menu__panel-header {
+.index-panel__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 2.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(233, 228, 219, 0.12);
+  gap: 1rem;
 }
 
-.side-menu__panel-title {
-  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  font-size: 0.85rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #ffe9b0;
+.index-panel__title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 300;
+  font-size: 2.3rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--paper);
 }
 
-.side-menu__close {
+.index-panel__close {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
+  margin: -0.5rem -0.55rem 0 0;
   padding: 0;
-  border: 1px solid rgba(233, 228, 219, 0.2);
-  border-radius: 3px;
-  background: rgba(11, 11, 13, 0.4);
-  color: #e9e4db;
+  border: 0;
+  background: none;
+  color: var(--ivory);
   cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition: color 0.3s var(--ease-out);
 }
 
-.side-menu__close:hover,
-.side-menu__close:active {
-  color: #ffe9b0;
-  border-color: #ffe9b0;
+.index-panel__close:hover,
+.index-panel__close:active {
+  color: var(--amber);
 }
 
-.side-menu__close:focus-visible {
-  outline: 1px solid rgba(255, 233, 176, 0.5);
-  outline-offset: 2px;
+.index-panel__close:focus-visible {
+  outline: 1px solid rgba(255, 233, 176, 0.6);
+  outline-offset: 0;
 }
 
-.side-menu__nav + .side-menu__nav {
-  margin-top: 2rem;
+.index-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-.side-menu__section-label {
-  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+.index-group__label {
+  margin: 0;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
   color: rgba(233, 228, 219, 0.55);
-  margin: 0 0 0.75rem;
 }
 
-.side-menu__list {
+/* Work: full-row buttons, numeral hanging in its own column, title at reading
+   size. The active study is marked by the amber numeral, never a badge. */
+.index-works {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.work {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  align-items: baseline;
+  width: 100%;
+  padding: 0.7rem 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--ivory);
+  cursor: pointer;
+  transition: transform 0.35s var(--ease-out);
+}
+
+.work:hover,
+.work:active {
+  transform: translateX(6px);
+}
+
+.work:focus-visible {
+  outline: 1px solid rgba(255, 233, 176, 0.6);
+  outline-offset: 4px;
+}
+
+.work__numeral {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 0.68rem;
+  color: var(--faint);
+  transition: color 0.3s var(--ease-out);
+}
+
+.work__title {
+  display: block;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.7rem;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: rgba(233, 228, 219, 0.66);
+  transition: color 0.3s var(--ease-out);
+}
+
+.work__meta {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.work.is-active .work__numeral {
+  color: var(--amber);
+}
+
+.work.is-active .work__title {
+  color: var(--paper);
+}
+
+.work:hover .work__title {
+  color: var(--amber);
+}
+
+.index-prose {
+  margin: 0;
+  max-width: 34ch;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 0.86rem;
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.index-links {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-/* Full-row links with hairline dividers: generous hit area (>= 44px), hover
-   nudges the row right and warms it to the accent. Entrance: subtle rise
-   + fade, staggered slightly after the drawer starts moving. */
-.side-menu__link {
-  display: block;
-  padding: 0.95rem 0.25rem;
-  color: #e9e4db;
+.index-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+  color: var(--ivory);
   text-decoration: none;
-  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  font-size: 1.25rem;
-  letter-spacing: 0.16em;
-  border-bottom: 1px solid rgba(233, 228, 219, 0.08);
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease,
-    color 0.2s ease,
-    padding-left 0.25s ease,
-    border-color 0.2s ease;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.01em;
+  transition: color 0.3s var(--ease-out);
 }
 
-.side-menu__panel.is-open .side-menu__link {
+.index-link__arrow {
+  font-size: 0.75em;
+  color: var(--amber);
+  transition: transform 0.35s var(--ease-out);
+}
+
+.index-link:hover,
+.index-link:active {
+  color: var(--amber);
+}
+
+.index-link:hover .index-link__arrow {
+  transform: translate(2px, -2px);
+}
+
+.index-link:focus-visible {
+  outline: 1px solid rgba(255, 233, 176, 0.6);
+  outline-offset: 4px;
+}
+
+/* Colophon anchors the drawer bottom so a sparse index never reads unfinished. */
+.index-panel__footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.index-panel__footer p {
+  margin: 0;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.index-panel__footer .index-group__label {
+  margin-bottom: 0.35rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1rem;
+  font-style: italic;
+  color: rgba(233, 228, 219, 0.55);
+}
+
+/* The name returns as the drawer's close — a designed sign-off, not a sitemap. */
+.index-panel__mark {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 300;
+  font-size: 1.9rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+.index-panel__footer .index-panel__copyright {
+  margin-top: 0.5rem;
+  color: var(--faint);
+}
+
+/* Entrance: rows and blocks rise after the drawer starts moving. */
+.index-panel__header,
+.index-group,
+.index-panel__footer {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.5s var(--ease-out),
+    transform 0.5s var(--ease-out);
+}
+
+.index-panel.is-open .index-panel__header {
   opacity: 1;
   transform: none;
-  /* stagger only the entrance; hover transitions stay instant */
-  transition-delay: 0.08s, 0.08s, 0s, 0s, 0s;
+  transition-delay: 0.06s;
 }
 
-.side-menu__link:hover,
-.side-menu__link:active {
-  color: #ffe9b0;
-  padding-left: 0.75rem;
-  border-color: rgba(255, 233, 176, 0.45);
-}
-
-.side-menu__link:focus-visible {
-  outline: 1px solid rgba(255, 233, 176, 0.5);
-  outline-offset: 2px;
-}
-
-/* Footer microcopy anchors the drawer bottom so a sparse nav never reads
-   as unfinished. */
-.side-menu__footer {
-  margin-top: auto;
-  padding-top: 2.5rem;
-}
-
-.side-menu__footer p {
-  margin: 0;
-  font-size: 0.68rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(233, 228, 219, 0.42);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.side-menu__panel.is-open .side-menu__footer p {
+.index-panel.is-open .index-group {
   opacity: 1;
-  transition-delay: 0.16s;
+  transform: none;
 }
 
-/* Narrow screens: full-bleed sheet — no divider to draw an "outline", larger
-   type and targets. width: min(340px, 100vw) already makes sub-340px
-   viewports full-bleed; this arm tunes type and spacing from 480px down. */
+.index-panel.is-open .index-group:nth-of-type(1) {
+  transition-delay: 0.12s;
+}
+
+.index-panel.is-open .index-group:nth-of-type(2) {
+  transition-delay: 0.18s;
+}
+
+.index-panel.is-open .index-group:nth-of-type(3) {
+  transition-delay: 0.24s;
+}
+
+.index-panel.is-open .index-panel__footer {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.3s;
+}
+
 @media (max-width: 480px) {
-  .side-menu__panel {
+  .index-panel {
     width: 100vw;
-    border-right: none;
     padding:
-      max(2rem, env(safe-area-inset-top))
-      max(1.5rem, env(safe-area-inset-right))
-      max(2rem, env(safe-area-inset-bottom))
-      max(1.5rem, env(safe-area-inset-left));
+      max(1.5rem, env(safe-area-inset-top))
+      max(1.35rem, env(safe-area-inset-right))
+      max(1.5rem, env(safe-area-inset-bottom))
+      max(1.35rem, env(safe-area-inset-left));
   }
 
-  .side-menu__section-label {
-    margin-bottom: 0.5rem;
+  .index-panel__title {
+    font-size: 2.6rem;
   }
 
-  .side-menu__link {
-    font-size: 1.45rem;
-    padding: 1.05rem 0.25rem;
+  .work__title {
+    font-size: 1.75rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .side-menu__panel,
-  .side-menu__backdrop,
-  .side-menu__link,
-  .side-menu__footer p {
+  .index-panel,
+  .index-backdrop,
+  .index-panel__header,
+  .index-group,
+  .index-panel__footer,
+  .index-toggle__glyph i,
+  .work,
+  .index-link__arrow {
     transition: none;
   }
 
-  .side-menu__link,
-  .side-menu__footer p {
+  .index-panel__header,
+  .index-group,
+  .index-panel__footer {
     opacity: 1;
     transform: none;
   }

@@ -1,48 +1,53 @@
-import { lazy, Suspense, useState } from 'react'
-import { isMobile } from './mobile'
+import { Suspense, useState } from 'react'
+import { useProgress } from '@react-three/drei'
 import SideMenu from './SideMenu'
-import LoadingBar from './LoadingBar'
+import LoadingStatus from './LoadingStatus'
+import { WORKS, pickWork } from './works'
 import './App.css'
 
-/* Each scene is a self-contained full-screen Canvas. Code-split every scene
-   and pick one at random per page load, so a visit only downloads the JS +
-   model for the chosen piece. On mobile we weight the lighter scenes higher. */
-
-const MarbleSpotlight = lazy(() => import('./MarbleSpotlight'))
-const LaptopStatue = lazy(() => import('./LaptopStatue'))
-
-/* Two pieces remain: Lucy (708 KB GLB) and the laptop (lighter once its
-   textures are re-encoded). On mobile we weight the lighter Lucy higher. */
-const SCENES = [
-  { Comp: MarbleSpotlight, weight: isMobile ? 2 : 1 }, // Lucy
-  { Comp: LaptopStatue, weight: isMobile ? 1 : 1 },
-]
-
-function pickScene(list) {
-  const total = list.reduce((sum, s) => sum + s.weight, 0)
-  let r = Math.random() * total
-  for (const s of list) {
-    r -= s.weight
-    if (r <= 0) return s.Comp
-  }
-  return list[list.length - 1].Comp
-}
-
+/* The page is a film title card: one full-bleed still, the name along the
+   bottom edge, the piece's credits beside it. `useProgress` lives here (top
+   level, outside Suspense) so the card can wait for the first frame — the
+   loading line is replaced in place by the credits, never stacked on them. */
 export default function App() {
-  const [Scene] = useState(() => pickScene(SCENES))
+  const [work, setWork] = useState(() => pickWork())
+  const { active, progress, errors } = useProgress()
+  const ready = errors.length > 0 || (progress === 100 && !active)
+  const Scene = work.Comp
 
   return (
     <div className="app">
       <Suspense fallback={null}>
-        <Scene />
+        <Scene key={work.id} />
       </Suspense>
-      <LoadingBar />
+
+      <div className="scrim" aria-hidden="true" />
       <div className="riso" aria-hidden="true" />
-      <SideMenu />
-      <header className="title">
-        <h1>marcxime</h1>
-        <p>a work in progress</p>
-      </header>
+
+      <LoadingStatus active={active} progress={progress} errors={errors} />
+
+      <SideMenu works={WORKS} activeId={work.id} onSelect={setWork} />
+
+      <footer className={`card${ready ? ' is-ready' : ''}`}>
+        <div className="card__row">
+          <div className="card__credits">
+            <div className="card__piece">
+              <span className="card__numeral">No. {work.numeral}</span>
+              <h2 className="card__work">{work.title}</h2>
+            </div>
+            <p className="card__inscription">{work.inscription}</p>
+            <p className="card__meta">
+              {work.medium}, {work.year}
+            </p>
+          </div>
+          <p className="card__epigraph">
+            What the hand makes,
+            <br />
+            the light keeps.
+          </p>
+        </div>
+        <h1 className="wordmark">marcxime</h1>
+      </footer>
     </div>
   )
 }

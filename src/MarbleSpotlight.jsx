@@ -2,7 +2,7 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { DPR, SHADOW_MAP, DUST_COUNT } from './mobile'
+import { DPR, SHADOW_MAP, DUST_COUNT, isMobile } from './mobile'
 import Grain from './Grain'
 
 /* The genuine Stanford "Lucy" statue, decimated to ~10k tris and exported as a
@@ -166,7 +166,7 @@ function Floor() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
       <circleGeometry args={[7, 64]} />
-      <meshLambertMaterial color="#bcbcbc" />
+      <meshLambertMaterial color="#a8a29b" />
     </mesh>
   )
 }
@@ -176,12 +176,15 @@ export default function MarbleSpotlight() {
     <Canvas
       shadows
       gl={{ toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 1 }}
-      camera={{ position: [7, 4, 1], fov: 40 }}
+      camera={{ position: isMobile ? [8.6, 4.7, 1.2] : [7, 4, 1], fov: isMobile ? 42 : 40 }}
       dpr={DPR}
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={['#0b0b0d']} />
       <hemisphereLight args={['#ffffff', '#8d8d8d', 0.25]} />
+      {/* Low warm fill from the viewer's side: the pool stays the drama, the
+          marble still reads. Without it the statue is a silhouette on desktop. */}
+      <directionalLight position={[4.5, 3.2, 5.5]} intensity={0.6} color="#ffe9b0" />
 
       <Suspense fallback={null}>
         <Statue />
@@ -192,7 +195,7 @@ export default function MarbleSpotlight() {
       <Grain />
 
       <OrbitControls
-        target={[0, 1, 0]}
+        target={[0, 1.15, 0]}
         enablePan={false}
         minDistance={2}
         maxDistance={10}

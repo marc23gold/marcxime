@@ -2,16 +2,25 @@
   box-sizing: border-box;
 }
 
-/* Single stacking plan + menu geometry tokens — the one source of truth for
-   layers. Semantics: 2 title, 3 chrome (loading bar + riso grain), 4 menu
-   (toggle/panel/backdrop); the 3D canvas sits at 0. Never add a bare z-index. */
+/* One source of truth for the palette, the measure and the layer plan.
+   Layers: 0 canvas, 1 scrim, 2 title card, 3 chrome (riso grain, loading
+   line), 4 index (toggle/panel/backdrop). Never add a bare z-index. */
 :root {
+  --ink: #0b0b0d;
+  --ivory: #e9e4db;
+  --paper: #f0e9d8;
+  --amber: #ffe9b0;
+  --muted: rgba(233, 228, 219, 0.62);
+  --faint: rgba(233, 228, 219, 0.4);
+
+  --gutter: clamp(20px, 4.2vw, 64px);
+
+  --z-scrim: 1;
   --z-title: 2;
   --z-chrome: 3;
   --z-menu: 4;
 
-  --menu-toggle-size: 42px;
-  --menu-toggle-offset: 1.5rem; /* top-edge offset of the toggle */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html,
@@ -22,10 +31,15 @@ body,
 }
 
 body {
-  background: #0b0b0d;
-  color: #e9e4db;
+  background: var(--ink);
+  color: var(--ivory);
   font-family: 'Lora', Georgia, 'Times New Roman', serif;
   overflow: hidden;
+}
+
+::selection {
+  background: rgba(255, 233, 176, 0.24);
+  color: #fff8e6;
 }
 
 .app {
@@ -41,46 +55,33 @@ body {
    the browser hijacking them for scroll or text selection. */
 .app canvas {
   touch-action: none;
+  animation: sceneIn 1.6s var(--ease-out) both;
 }
 
-.title {
-  position: absolute;
-  top: 2.2rem;
-  left: 0;
-  right: 0;
-  text-align: center;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
-  z-index: var(--z-title);
-  /* Click-transparent shell: canvas orbit drags must pass through the empty
-     band around the text; only the text itself accepts events (selection). */
+@keyframes sceneIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Legibility scrim: the bottom third of the still carries type, so it sinks
+   into the ink. A photograph-style neutral scrim, not a decorative gradient. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-scrim);
   pointer-events: none;
-}
-
-.title h1,
-.title p {
-  pointer-events: auto;
-}
-
-.title h1 {
-  font-size: clamp(2rem, 5.5vw, 3.4rem);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  margin: 0;
-  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  font-weight: 500;
-  color: #f0e9d8;
-  text-shadow: 0 1px 22px rgba(0, 0, 0, 0.45);
-}
-
-.title p {
-  margin: 0.55rem 0 0;
-  font-style: italic;
-  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  letter-spacing: 0.18em;
-  font-size: 1.15rem;
-  opacity: 0.72;
-  color: #f0e9d8;
-  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.55);
+  background: linear-gradient(
+    to top,
+    rgba(11, 11, 13, 0.94) 0%,
+    rgba(11, 11, 13, 0.78) 10%,
+    rgba(11, 11, 13, 0.4) 22%,
+    rgba(11, 11, 13, 0.08) 36%,
+    rgba(11, 11, 13, 0) 48%
+  );
 }
 
 /* ---- Risograph grain "light" effect ----
@@ -92,7 +93,7 @@ body {
   z-index: var(--z-chrome);
   pointer-events: none;
   mix-blend-mode: soft-light;
-  opacity: 0.6;
+  opacity: 0.45;
   background-image:
     linear-gradient(135deg, rgba(255, 168, 96, 0.35), rgba(255, 80, 90, 0.12) 45%, rgba(118, 156, 255, 0.16)),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.7'/></svg>");
@@ -105,4 +106,160 @@ body {
   33%  { background-position: 1px -2px, 8px -13px; }
   66%  { background-position: -1px 2px, -11px 7px; }
   100% { background-position: 0 0, 0 0; }
+}
+
+/* ---- The title card ----
+   Wordmark on the bottom edge, the piece's credits above it on the left, the
+   page's one epigraph on the right. Click-transparent shell so the canvas
+   keeps every orbit gesture; only the text itself is selectable. */
+.card {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-title);
+  padding: 0 var(--gutter) clamp(22px, 4vh, 42px);
+  pointer-events: none;
+}
+
+.card__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2.5rem;
+  margin-bottom: clamp(16px, 2.6vh, 30px);
+}
+
+.card__credits p,
+.card__credits h2 {
+  margin: 0;
+  pointer-events: auto;
+}
+
+.card__piece {
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+}
+
+.card__numeral {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+}
+
+.card__work {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(1.2rem, 1.7vw, 1.55rem);
+  font-weight: 400;
+  letter-spacing: 0.015em;
+  line-height: 1.1;
+  color: var(--paper);
+}
+
+.card__inscription {
+  margin-top: 0.35rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(0.98rem, 1.25vw, 1.12rem);
+  letter-spacing: 0.01em;
+  color: rgba(233, 228, 219, 0.8);
+  text-wrap: pretty;
+}
+
+.card__meta {
+  margin-top: 0.6rem;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.card__epigraph {
+  margin: 0;
+  pointer-events: auto;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(1rem, 1.35vw, 1.18rem);
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  text-align: right;
+  color: rgba(233, 228, 219, 0.86);
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.65);
+}
+
+.wordmark {
+  margin: 0 0 0 -0.045em;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 300;
+  font-size: max(2.8rem, 14.2vw);
+  line-height: 0.78;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--paper);
+  pointer-events: auto;
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* Entrance: the name lands first, the credits settle after it — a title card
+   resolving, not everything arriving at once. */
+.card__row,
+.wordmark {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 1.1s var(--ease-out),
+    transform 1.1s var(--ease-out);
+}
+
+.card.is-ready .wordmark {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.05s;
+}
+
+.card.is-ready .card__row {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.22s;
+}
+
+@media (max-width: 767px) {
+  .card__epigraph {
+    display: none;
+  }
+
+  .card__row {
+    margin-bottom: clamp(14px, 2.2vh, 22px);
+  }
+
+  .card__inscription {
+    max-width: 30ch;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .card__row {
+    margin-bottom: 0.6rem;
+  }
+
+  .wordmark {
+    font-size: clamp(2.6rem, 11vw, 6rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app canvas,
+  .riso {
+    animation: none;
+  }
+
+  .card__row,
+  .wordmark {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
 }
