@@ -135,7 +135,7 @@ export default function SideMenu({ works, activeId, onSelect }) {
         <section className="index-group">
           <p className="index-group__label">Studio</p>
           <p className="index-prose">
-            I make small monuments in the browser — stone, obsolete machines, a travelling beam.
+            I make small monuments in the browser: stone, obsolete machines, a travelling beam.
             Each study begins as a found object and ends as light.
           </p>
         </section>
