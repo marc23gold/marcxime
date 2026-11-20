@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import './SideMenu.css'
 
-const CONTACT = [{ label: 'GitHub', href: 'https://github.com/marc23gold' }]
+const CONTACT = [
+  { label: 'GitHub', href: 'https://github.com/marc23gold' },
+  { label: 'creative.uakar.com', href: 'https://creative.uakar.com' },
+]
 
 const FOCUSABLE = 'a[href], button:not([disabled])'
 
