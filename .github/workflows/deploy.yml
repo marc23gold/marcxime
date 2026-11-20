@@ -71,4 +71,7 @@ jobs:
           SSH_CMD="ssh -p ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15"
           WEBROOT="${{ secrets.VPS_WEBROOT }}"
 
-          rsync -avz --delete -e "$SSH_CMD" dist/ "$SSH_TARGET":"$WEBROOT"/
+          # --delete keeps the webroot in sync with dist, but .well-known holds
+          # server-owned files (security.txt) that the deploy user cannot
+          # remove; excluding it keeps the sync green.
+          rsync -avz --delete --exclude='/.well-known/' -e "$SSH_CMD" dist/ "$SSH_TARGET":"$WEBROOT"/
