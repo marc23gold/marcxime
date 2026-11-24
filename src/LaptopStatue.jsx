@@ -37,7 +37,7 @@ const CRT_DIM = 'rgba(190,245,205,0.92)'
 const CRT_HOT = '#e4ffea'
 const CRT_GLOW = 'rgba(130,235,170,0.85)'
 const CRT_FONT = '26px "SF Mono", Menlo, Consolas, monospace'
-const CRT_LH = 36
+const CRT_LH = 34
 const CHAR_W = 15.6
 
 const BOOT_LINES = [
@@ -47,9 +47,15 @@ const BOOT_LINES = [
   [1.85, 'IDE 0: PAPER   IDE 1: NONE'],
   [2.15, 'BOOTING FROM PAPER...'],
 ]
-const POEM = 'A small lamp that remembers paper.'
-const POEM_T = 2.8
-const POEM_CPS = 0.05
+const DIR_CMD_T = 2.7
+const DIR_STARTS = [3.15, 3.37, 3.82]
+const DIR_LINES = [
+  'WINGED.VIC    1989   198K',
+  'LAPTOP.EXE    2026   640K',
+  'ABSENCE.TXT   2026     0K',
+]
+const DIR_FONT = '20px "SF Mono", Menlo, Consolas, monospace'
+const DIR_CW = 12
 
 function makeScreen() {
   const canvas = document.createElement('canvas')
@@ -135,38 +141,53 @@ function drawScreen(ctx, t) {
     y += CRT_LH
   }
 
-  // prompt and the work's line, typed at a human pace, wrapped to two lines
-  if (t > POEM_T) {
-    const n = Math.min(POEM.length, Math.floor((t - POEM_T) / POEM_CPS))
-    const shown = POEM.slice(0, n)
-    const l1 = shown.slice(0, 17)
-    const l2 = shown.slice(17)
+  // prompt, a typed command, and a listing with a file that shouldn't exist
+  if (t > 2.5) {
+    ctx.font = CRT_FONT
     ctx.fillStyle = CRT_HOT
     ctx.shadowColor = CRT_GLOW
-    ctx.shadowBlur = 7
-    ctx.fillText('>', 28, y + 6)
-    ctx.fillText(l1, 28 + 3 * CHAR_W, y + 6)
-    ctx.fillText(l2, 28 + 3 * CHAR_W, y + 6 + 38)
+    ctx.shadowBlur = 6
+    ctx.fillText('C:\\>', 28, y + 6)
     ctx.shadowBlur = 0
 
-    // block cursor, solid while typing, blinking once the line is done
-    const cLine = n <= 17 ? 0 : 1
-    const cIndex = n <= 17 ? n : n - 17
-    const cx = 28 + 3 * CHAR_W + cIndex * CHAR_W
-    const cy = y + 6 + cLine * 38 - 24
-    if (n < POEM.length || Math.floor(t * 3) % 2 === 0) {
-      ctx.fillStyle = 'rgba(220,255,228,0.92)'
-      ctx.fillRect(cx + 1, cy, 14, 26)
+    const cmd = 'dir'
+    const typed = Math.min(cmd.length, Math.floor((t - DIR_CMD_T) / 0.09))
+    if (typed > 0) {
+      ctx.fillStyle = CRT_HOT
+      ctx.shadowColor = CRT_GLOW
+      ctx.shadowBlur = 6
+      ctx.fillText(cmd.slice(0, typed), 28 + 4 * CHAR_W, y + 6)
+      ctx.shadowBlur = 0
+    }
+
+    if (t > DIR_STARTS[0]) {
+      ctx.font = DIR_FONT
+      const count = DIR_STARTS.filter((s) => t > s).length
+      for (let i = 0; i < count; i++) {
+        const stinger = i === DIR_LINES.length - 1
+        ctx.fillStyle = stinger ? CRT_HOT : CRT_DIM
+        ctx.shadowColor = CRT_GLOW
+        ctx.shadowBlur = stinger ? 7 : 3
+        ctx.fillText(DIR_LINES[i], 28, y + 36 + i * 22)
+        ctx.shadowBlur = 0
+      }
+
+      // no prompt returns: the cursor stops at the end of the listing
+      if (count === DIR_LINES.length && Math.floor(t * 3) % 2 === 0) {
+        const last = DIR_LINES[DIR_LINES.length - 1]
+        ctx.fillStyle = 'rgba(220,255,228,0.92)'
+        ctx.fillRect(28 + last.length * DIR_CW + 2, y + 36 + 2 * 22 - 18, DIR_CW, 20)
+      }
     }
   }
 
-  // boot progress bar, fading once the poem is typed
+  // boot progress bar, fading once the boot hands over to the listing
   const bp = clamp01((t - 0.95) / 1.9)
   if (bp > 0) {
-    const fade = t > 4.6 ? clamp01(1 - (t - 4.6) / 0.5) : 1
+    const fade = t > 3.0 ? clamp01(1 - (t - 3.0) / 0.6) : 1
     const bx = 28
     const bw = W - 56
-    const by = H - 26
+    const by = H - 10
     ctx.globalAlpha = fade
     ctx.fillStyle = 'rgba(120,200,150,0.25)'
     ctx.fillRect(bx, by, bw, 4)
