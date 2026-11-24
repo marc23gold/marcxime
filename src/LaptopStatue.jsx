@@ -4,6 +4,7 @@ import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { DPR, SHADOW_MAP, DUST_COUNT, isMobile } from './mobile'
 import Grain from './Grain'
+import Sky from './Sky'
 
 /* A classic laptop (glTF, own PBR materials) seated on a plinth and lit by the
    same orbiting, colorful, texture-projected spotlight as the other pieces.
@@ -320,6 +321,7 @@ export default function LaptopStatue() {
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={['#0b0b0d']} />
+      <Sky />
       <hemisphereLight args={['#ffffff', '#8d8d8d', 0.25]} />
       {/* Low warm fill from the viewer's side so the case and keys read. */}
       <directionalLight position={[4.5, 3.2, 5.5]} intensity={0.6} color="#ffe9b0" />

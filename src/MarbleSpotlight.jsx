@@ -4,6 +4,7 @@ import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { DPR, SHADOW_MAP, DUST_COUNT, isMobile } from './mobile'
 import Grain from './Grain'
+import Sky from './Sky'
 
 /* The genuine Stanford "Lucy" statue, decimated to ~10k tris and exported as a
    small GLB (181 KB vs the 1.9 MB PLY) for fast loads and light mobile GPUs. */
@@ -181,6 +182,7 @@ export default function MarbleSpotlight() {
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={['#0b0b0d']} />
+      <Sky />
       <hemisphereLight args={['#ffffff', '#8d8d8d', 0.25]} />
       {/* Low warm fill from the viewer's side: the pool stays the drama, the
           marble still reads. Without it the statue is a silhouette on desktop. */}
