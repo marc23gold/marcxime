@@ -4,6 +4,7 @@ import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { DPR, SHADOW_MAP, DUST_COUNT, isMobile } from './mobile'
 import Grain from './Grain'
+import Ground from './Ground'
 import Sky from './Sky'
 
 /* A classic laptop (glTF, own PBR materials) seated on a plinth and lit by the
@@ -303,12 +304,7 @@ function Beam() {
 
 /* Dark circular floor that receives the spotlight's projected pool and shadow. */
 function Floor() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
-      <circleGeometry args={[8, 64]} />
-      <meshLambertMaterial color="#a8a29b" />
-    </mesh>
-  )
+  return <Ground />
 }
 
 export default function LaptopStatue() {
