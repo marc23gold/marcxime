@@ -18,24 +18,38 @@ const ORBIT_SPEED = 0.35 // slower, more cinematic sweep
 const HEIGHT = 5
 
 /* Screen power-on: the glTF screen material starts near-black (off). The first
-   time the camera looks at the screen front, it boots with a warm flicker and
-   settles into a dim, breathing glow that fits the film faint-light look. */
+   time the camera looks at the screen front, a green CRT boots — a line becomes
+   a raster, the BIOS prints, then the work's line is typed and a cursor blinks.
+   The canvas feeds the material's emissiveMap; RGB encodes brightness. */
 const SCREEN_MAT = 'classic_laptop_screen'
-const SCREEN_COLOR = new THREE.Color('#ffe9b0')
-const _p = new THREE.Vector3()
-const _d = new THREE.Vector3()
-const _f = new THREE.Vector3()
+const SCREEN_COLOR = new THREE.Color('#e9fff2')
+const SCREEN_INTENSITY = 1.15
 
 const ease = (x) => x * x * (3 - 2 * x)
+const clamp01 = (x) => Math.min(1, Math.max(0, x))
 
-/* The screen boots by drawing a warm, analog-style boot animation onto a canvas
-   texture that feeds the screen material's emissiveMap — the display shows
-   content as it powers on, not a flat filled panel. RGB encodes brightness
-   (alpha is ignored by emissiveMap), so every layer writes scaled rgb(). */
-const SCREEN_W = 256
-const SCREEN_H = 160
+const SCREEN_W = 512
+const SCREEN_H = 320
 
-const warm = (b) => `rgb(${Math.round(255 * b)},${Math.round(214 * b)},${Math.round(150 * b)})`
+/* Sage phosphor: a desaturated green that sits inside the film's warm palette. */
+const CRT_BG = '#04110a'
+const CRT_DIM = 'rgba(190,245,205,0.92)'
+const CRT_HOT = '#e4ffea'
+const CRT_GLOW = 'rgba(130,235,170,0.85)'
+const CRT_FONT = '26px "SF Mono", Menlo, Consolas, monospace'
+const CRT_LH = 36
+const CHAR_W = 15.6
+
+const BOOT_LINES = [
+  [1.0, 'MARXIME BIOS v2.11'],
+  [1.3, '80386SX / 16 MHz'],
+  [1.55, 'MEMORY TEST: 640K OK'],
+  [1.85, 'IDE 0: PAPER   IDE 1: NONE'],
+  [2.15, 'BOOTING FROM PAPER...'],
+]
+const POEM = 'A small lamp that remembers paper.'
+const POEM_T = 2.8
+const POEM_CPS = 0.05
 
 function makeScreen() {
   const canvas = document.createElement('canvas')
@@ -73,66 +87,136 @@ function fitScreenUVs(geo) {
 }
 
 function drawScreen(ctx, t) {
-  const W = SCREEN_W, H = SCREEN_H
+  const W = SCREEN_W
+  const H = SCREEN_H
   ctx.clearRect(0, 0, W, H)
 
-  // ignition: a warm core flashes, expands, then fades into the glass
-  const core = ease(Math.min(1, Math.max(0, (t - 0.05) / 0.5)))
-  if (core > 0) {
-    const b = 0.85 * core * Math.max(0, 1 - Math.max(0, t - 0.55) / 0.4)
-    const r = 6 + core * H * 0.55
-    const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, r)
-    g.addColorStop(0, `rgb(${Math.round(255 * b)},${Math.round(235 * b)},${Math.round(180 * b)})`)
-    g.addColorStop(1, 'rgb(0,0,0)')
-    ctx.fillStyle = g
-    ctx.fillRect(0, 0, W, H)
+  // phosphor background: near-black green with a soft centre glow
+  ctx.fillStyle = CRT_BG
+  ctx.fillRect(0, 0, W, H)
+  const bg = ctx.createRadialGradient(W / 2, H * 0.45, 12, W / 2, H * 0.45, H * 0.9)
+  bg.addColorStop(0, 'rgba(70,170,100,0.10)')
+  bg.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, W, H)
+
+  // ignition: a bright line opens sideways, then expands into the raster
+  if (t < 0.95) {
+    const w = W * ease(clamp01((t - 0.05) / 0.5))
+    const h = 2 + (H - 2) * ease(clamp01((t - 0.45) / 0.5))
+    const b = 0.95 - 0.25 * ease(clamp01((t - 0.45) / 0.5))
+    ctx.save()
+    ctx.shadowColor = 'rgba(180,255,210,0.95)'
+    ctx.shadowBlur = 16
+    ctx.fillStyle = `rgba(214,255,226,${b})`
+    ctx.fillRect((W - w) / 2, (H - h) / 2, w, h)
+    ctx.restore()
+    drawRaster(ctx, t)
+    return
   }
 
-  // the screen fills to a warm dark glass
-  const fill = ease(Math.min(1, Math.max(0, (t - 0.45) / 0.7)))
-  if (fill > 0) {
-    const b = 0.5 * fill
-    ctx.fillStyle = `rgb(${Math.round(50 * b)},${Math.round(34 * b)},${Math.round(16 * b)})`
-    ctx.fillRect(0, 0, W, H)
+  // content sits on a slightly unstable vertical hold
+  const jy = 1.6 * Math.sin(t * 11.3) + 1.1 * Math.sin(t * 23.7 + 1.2)
+  ctx.save()
+  ctx.translate(0, jy)
+  ctx.font = CRT_FONT
+
+  // BIOS header, printed character by character
+  let y = 40
+  for (const [start, text] of BOOT_LINES) {
+    const n = Math.floor((t - start) / 0.012)
+    if (n > 0) {
+      ctx.fillStyle = CRT_DIM
+      ctx.shadowColor = CRT_GLOW
+      ctx.shadowBlur = 4
+      ctx.fillText(text.slice(0, n), 28, y)
+      ctx.shadowBlur = 0
+    }
+    y += CRT_LH
   }
 
-  // scanlines shimmer faintly once alive
-  const alive = ease(Math.min(1, Math.max(0, (t - 0.2) / 2.2)))
-  if (alive > 0) {
-    for (let y = 2; y < H; y += 6) {
-      const b = (0.05 + 0.09 * Math.abs(Math.sin(t * 30 + y))) * alive
-      ctx.fillStyle = warm(b)
-      ctx.fillRect(0, y, W, 1)
+  // prompt and the work's line, typed at a human pace, wrapped to two lines
+  if (t > POEM_T) {
+    const n = Math.min(POEM.length, Math.floor((t - POEM_T) / POEM_CPS))
+    const shown = POEM.slice(0, n)
+    const l1 = shown.slice(0, 17)
+    const l2 = shown.slice(17)
+    ctx.fillStyle = CRT_HOT
+    ctx.shadowColor = CRT_GLOW
+    ctx.shadowBlur = 7
+    ctx.fillText('>', 28, y + 6)
+    ctx.fillText(l1, 28 + 3 * CHAR_W, y + 6)
+    ctx.fillText(l2, 28 + 3 * CHAR_W, y + 6 + 38)
+    ctx.shadowBlur = 0
+
+    // block cursor, solid while typing, blinking once the line is done
+    const cLine = n <= 17 ? 0 : 1
+    const cIndex = n <= 17 ? n : n - 17
+    const cx = 28 + 3 * CHAR_W + cIndex * CHAR_W
+    const cy = y + 6 + cLine * 38 - 24
+    if (n < POEM.length || Math.floor(t * 3) % 2 === 0) {
+      ctx.fillStyle = 'rgba(220,255,228,0.92)'
+      ctx.fillRect(cx + 1, cy, 14, 26)
     }
   }
 
-  // a thin progress bar grows across, then lingers
-  const p = ease(Math.min(1, Math.max(0, (t - 0.9) / 1.1)))
-  if (p > 0) {
-    const bx = W * 0.16, bw = W * 0.68, by = H * 0.78
-    ctx.fillStyle = warm(0.28)
-    ctx.fillRect(bx, by, bw, 2)
-    ctx.fillStyle = warm(1)
-    ctx.fillRect(bx, by, bw * p, 2)
-    ctx.fillStyle = 'rgb(255,232,180)'
-    ctx.fillRect(bx + bw * p - 1, by - 1, 2, 4)
+  // boot progress bar, fading once the poem is typed
+  const bp = clamp01((t - 0.95) / 1.9)
+  if (bp > 0) {
+    const fade = t > 4.6 ? clamp01(1 - (t - 4.6) / 0.5) : 1
+    const bx = 28
+    const bw = W - 56
+    const by = H - 26
+    ctx.globalAlpha = fade
+    ctx.fillStyle = 'rgba(120,200,150,0.25)'
+    ctx.fillRect(bx, by, bw, 4)
+    ctx.fillStyle = 'rgba(170,240,190,0.9)'
+    ctx.fillRect(bx, by, bw * ease(bp), 4)
+    ctx.globalAlpha = 1
   }
 
-  // idle: a dim warm breathing glow keeps the on-screen alive
-  const idle = Math.max(0.04, 0.1 + 0.03 * Math.sin(t * 2.3) + 0.02 * Math.sin(t * 5.4))
-  if (t > 0.6) {
-    const g = ctx.createRadialGradient(W / 2, H / 2, 3, W / 2, H / 2, H * 0.72)
-    g.addColorStop(0, `rgb(${Math.round(255 * idle)},${Math.round(215 * idle)},${Math.round(150 * idle)})`)
-    g.addColorStop(1, 'rgb(0,0,0)')
-    ctx.fillStyle = g
+  ctx.restore()
+
+  // ignition flash
+  const fl = 1 - clamp01((t - 0.95) / 0.4)
+  if (fl > 0) {
+    ctx.fillStyle = `rgba(200,255,220,${0.3 * fl})`
     ctx.fillRect(0, 0, W, H)
   }
+
+  drawRaster(ctx, t)
+}
+
+/* scanlines, a slow rolling refresh band, and a vignette */
+function drawRaster(ctx, t) {
+  const W = SCREEN_W
+  const H = SCREEN_H
+
+  for (let y = 0; y < H; y += 4) {
+    ctx.fillStyle = 'rgba(0,0,0,0.22)'
+    ctx.fillRect(0, y, W, 1)
+  }
+
+  const ry = ((t * 36) % (H + 200)) - 100
+  const band = ctx.createLinearGradient(0, ry, 0, ry + 90)
+  band.addColorStop(0, 'rgba(160,255,190,0)')
+  band.addColorStop(0.45, 'rgba(160,255,190,0.045)')
+  band.addColorStop(1, 'rgba(160,255,190,0)')
+  ctx.fillStyle = band
+  ctx.fillRect(0, ry, W, 90)
+
+  const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85)
+  vg.addColorStop(0, 'rgba(0,0,0,0)')
+  vg.addColorStop(1, 'rgba(0,0,0,0.5)')
+  ctx.fillStyle = vg
+  ctx.fillRect(0, 0, W, H)
 }
 
 function Statue() {
   const { scene } = useGLTF(MODEL_URL)
   const screen = useRef(null)
   const draw = useRef(null)
+  const spill = useRef(null)
   const poweredOn = useRef(false)
   const bootT = useRef(0)
 
@@ -147,10 +231,19 @@ function Statue() {
         const mat = o.material.clone()
         mat.emissive.copy(SCREEN_COLOR)
         mat.emissiveMap = draw.current.tex
-        mat.emissiveIntensity = 0.55
+        mat.emissiveIntensity = SCREEN_INTENSITY
         o.material = mat
         o.geometry = o.geometry.clone()
         fitScreenUVs(o.geometry)
+
+        // the phosphor spills a little green onto the keyboard and bezel
+        if (!o.userData.screenLight) {
+          const light = new THREE.PointLight('#9fe3ae', 0, 3.4, 2)
+          light.position.set(0, -0.2, 0.1)
+          o.add(light)
+          o.userData.screenLight = light
+        }
+        spill.current = o.userData.screenLight
       }
     })
   }, [scene])
@@ -159,19 +252,21 @@ function Statue() {
     const mesh = screen.current
     if (!mesh) return
 
-    // Armed once the scene has settled; fires on the first real look at the front.
+    // The camera is static, so the screen boots once the scene has settled.
     if (!poweredOn.current) {
-      if (state.clock.elapsedTime < 2) return
-      mesh.getWorldPosition(_p)
-      _d.subVectors(state.camera.position, _p).normalize()
-      mesh.getWorldDirection(_f)
-      if (_d.dot(_f) < 0.5) return
+      if (state.clock.elapsedTime < 1.8) return
       poweredOn.current = true
     }
 
     bootT.current += delta
     drawScreen(draw.current.ctx, bootT.current)
     draw.current.tex.needsUpdate = true
+
+    // the spill fades up with the boot and stays while the screen is lit
+    if (spill.current) {
+      const target = poweredOn.current ? 1.1 : 0
+      spill.current.intensity += (target - spill.current.intensity) * Math.min(1, delta * 2)
+    }
   })
 
   return (
