@@ -127,39 +127,112 @@ function Spotlight() {
   )
 }
 
-/* A handful of drifting dust motes so the sweeping shaft reads in the air. */
+/* Dust that drifts on its own eddy rather than as one rigid carousel: each mote
+   is displaced in the vertex shader, a third of them travel visibly, and they
+   brighten as the orbiting beam crosses their side of the statue. Sizes read
+   against depth, so near motes open into soft bokeh. */
+const DUST_VERT = `
+  attribute float aSeed;
+  attribute float aSize;
+  attribute float aHero;
+
+  uniform float uTime;
+  uniform vec3 uLight;
+  uniform float uScale;
+
+  varying float vBright;
+
+  void main() {
+    vec3 p = position;
+    float t = uTime;
+    float s = aSeed * 6.2831853;
+    float amp = mix(0.035, 0.2, aHero);
+
+    p.x += amp * (sin(t * 0.31 + s * 1.7) + 0.6 * sin(t * 0.73 + s * 4.1));
+    p.y += amp * (0.8 * sin(t * 0.27 + s * 2.3) + 0.4 * sin(t * 0.61 + s * 5.7));
+    p.z += amp * (cos(t * 0.23 + s * 3.1) + 0.6 * cos(t * 0.67 + s * 6.3));
+
+    vec2 dir = normalize(p.xz + vec2(0.0001));
+    vec2 ldir = normalize(uLight.xz + vec2(0.0001));
+    float lit = smoothstep(0.35, 1.0, dot(dir, ldir));
+    vBright = 0.5 + 0.75 * lit;
+
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = aSize * uScale / max(0.1, -mv.z);
+  }
+`
+
+const DUST_FRAG = `
+  uniform vec3 uColor;
+  varying float vBright;
+
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    float a = smoothstep(0.5, 0.06, d);
+    gl_FragColor = vec4(uColor * (a * vBright), 1.0);
+  }
+`
+
 function Beam() {
-  const dust = useRef()
-  useFrame((state) => {
-    if (dust.current) dust.current.rotation.y = state.clock.elapsedTime * 0.05
-  })
-  const dustPoints = useMemo(() => {
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uLight: { value: new THREE.Vector3(RADIUS, HEIGHT, 0) },
+          uScale: { value: 450 },
+          uColor: { value: new THREE.Color('#ffe9b0') },
+        },
+        vertexShader: DUST_VERT,
+        fragmentShader: DUST_FRAG,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    [],
+  )
+
+  const geometry = useMemo(() => {
     const count = DUST_COUNT
     const positions = new Float32Array(count * 3)
+    const seeds = new Float32Array(count)
+    const sizes = new Float32Array(count)
+    const heroes = new Float32Array(count)
+
     for (let i = 0; i < count; i++) {
       const radius = 0.3 + Math.random() * 1.4
       const angle = Math.random() * Math.PI * 2
       positions[i * 3] = Math.cos(angle) * radius
       positions[i * 3 + 1] = 0.5 + Math.random() * 2.4
       positions[i * 3 + 2] = Math.sin(angle) * radius
+
+      seeds[i] = Math.random()
+      const hero = Math.random() < 0.33 ? 1 : 0
+      heroes[i] = hero
+      sizes[i] = (hero ? 0.032 : 0.018) + Math.random() * (hero ? 0.045 : 0.03)
     }
-    return positions
+
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    g.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1))
+    g.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
+    g.setAttribute('aHero', new THREE.BufferAttribute(heroes, 1))
+    return g
   }, [])
-  return (
-    <points ref={dust}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[dustPoints, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        color="#ffe9b0"
-        size={0.02}
-        transparent
-        opacity={0.5}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </points>
-  )
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+    material.uniforms.uTime.value = t
+    material.uniforms.uLight.value.set(
+      Math.cos(t * ORBIT_SPEED) * RADIUS,
+      HEIGHT,
+      Math.sin(t * ORBIT_SPEED) * RADIUS,
+    )
+    material.uniforms.uScale.value = state.size.height * state.gl.getPixelRatio() * 0.5
+  })
+
+  return <points geometry={geometry} material={material} frustumCulled={false} />
 }
 
 /* Dark circular floor that receives the spotlight's projected pool and the
