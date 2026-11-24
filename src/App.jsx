@@ -41,9 +41,9 @@ export default function App() {
             </p>
           </div>
           <p className="card__epigraph">
-            What the hand makes,
+            I have been carving
             <br />
-            the light keeps.
+            your absence out of light
           </p>
         </div>
         <h1 className="wordmark">marcxime</h1>
